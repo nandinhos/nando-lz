@@ -4,6 +4,14 @@ Todas as mudanças relevantes deste projeto são documentadas aqui.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/) próprio, independente das versões da stack.
 
+## [1.2.0] - 2026-07-02
+
+### Adicionado
+
+- **Landing page** na rota inicial (`welcome`), abstraída de design próprio (Claude Design): dark/light com persistência, PT/EN, botões de copiar, e conteúdo fiel às features reais do starter.
+- **Monitor de atualização** no hero: terminal com as **versões realmente instaladas** (lidas do `composer.lock` e do runtime via `App\Support\Stack`), a **última atualização aplicada** (relatório mais recente de `docs/reports/auto-update/`, com link e veredito), a release do starter (CHANGELOG) e o build id.
+- Teste de sanidade da welcome: valida que a página exibe as versões reais do lock, o build id e a data do último ciclo (suíte: **23 testes / 59 asserts**).
+
 ## [1.1.0] - 2026-07-02
 
 ### Corrigido
