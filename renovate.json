@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "America/Sao_Paulo",
+  "rangeStrategy": "update-lockfile",
+  "labels": ["auto-update", "dependencies"],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "description": "Camada 1 só cuida de patch/minor (lock). Majors são do agente (Camada 2 / §6).",
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Agrupa as atualizações de lock semanais em PRs enxutos.",
+      "matchManagers": ["composer", "npm"],
+      "groupName": "dependências (lock)"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "enabled": true
+  }
+}

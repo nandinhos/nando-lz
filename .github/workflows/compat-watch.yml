@@ -1,0 +1,57 @@
+name: Compat Watch
+
+# Vigia a janela de incompatibilidade Filament × Laravel (PRD §4.2 / §8).
+# Mantém uma issue rastreadora quando o Filament estável ainda não suporta a
+# última major do Laravel. Não altera código.
+on:
+  schedule:
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: intl
+          coverage: none
+
+      - name: Resolver stack e vigiar bloqueio upstream (§4.2)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          JSON="$(bash scripts/resolve-stack.sh)"
+          echo "$JSON"
+
+          BLOCKED="$(echo "$JSON" | php -r 'echo json_decode(stream_get_contents(STDIN),true)["blocked_upstream"]?"1":"0";')"
+          MAXSUP="$(echo "$JSON"  | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo $d["laravel"]["max_supported_major"] ?? "?";')"
+          LATEST="$(echo "$JSON"  | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo $d["laravel"]["latest_stable"];')"
+          NEXT=$(( ${LATEST%%.*} + 1 ))
+
+          TITLE="compat: aguardando Filament x Laravel $NEXT"
+          EXISTING="$(gh issue list --label blocked-upstream --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || true)"
+
+          if [ "$BLOCKED" = "1" ]; then
+            BODY="O Filament estável suporta no máximo Laravel major **$MAXSUP**, abaixo do último estável (**$LATEST**). Mantendo a major atual até o upstream liberar (§4.2). Reavaliado a cada ciclo."
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --body "$BODY"
+            else
+              gh issue create --title "$TITLE" --label blocked-upstream --body "$BODY"
+            fi
+          else
+            if [ -n "$EXISTING" ]; then
+              gh issue close "$EXISTING" --comment "Upstream liberou o suporte; sem bloqueio no ciclo atual."
+            else
+              echo "Sem bloqueio upstream."
+            fi
+          fi

@@ -1,0 +1,37 @@
+# nando-lz — modo Docker (PRD §13). `docker compose up -d` sobe app + banco
+# de forma autossuficiente (o entrypoint faz o bootstrap). Sem PHP/PostgreSQL
+# locais necessários.
+services:
+  app:
+    build: .
+    # Porta alta por padrão para não conflitar com outros serviços do host/VPS.
+    # Ajuste com APP_PORT no .env (ex.: APP_PORT=18000 → http://localhost:18000).
+    ports:
+      - "${APP_PORT:-18000}:8000"
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      PHP_CLI_SERVER_WORKERS: 4
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-nando_lz}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-nando_lz}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

@@ -1,0 +1,107 @@
+name: Auto Update
+
+# Ciclo semanal do agente (PRD §6 Camada 2 / §7). Aplica patch/minor, roda os
+# gates e ABRE PR — nunca faz merge. Segunda 08:00 America/Sao_Paulo = 11:00 UTC.
+on:
+  schedule:
+    - cron: '0 11 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nando_lz_testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: intl, pdo_pgsql
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Preparar ambiente
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate
+
+      - name: Criar branch de manutenção
+        run: |
+          git config user.name "nando-lz-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git switch -c "maintenance/auto-update-$(date +%F)"
+
+      - name: Rodar ciclo de atualização (§7.3)
+        id: cycle
+        continue-on-error: true
+        run: bash scripts/update-stack.sh
+
+      - name: Abrir PR (sem merge) ou registrar falha
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DATE="$(date +%F)"
+          BRANCH="maintenance/auto-update-$DATE"
+          REPORT="docs/reports/auto-update/$DATE.md"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nenhuma mudança neste ciclo."
+            exit 0
+          fi
+
+          # Classificação (§7.2): mexer em composer.json = major/constraint = REVIEW.
+          LABELS="auto-update"
+          if ! git diff --quiet -- composer.json; then
+            LABELS="$LABELS,needs-human-approval"
+          fi
+          if [ "${{ steps.cycle.outcome }}" != "success" ]; then
+            LABELS="$LABELS,needs-human-approval"
+          fi
+
+          git add -A
+          git commit -m "chore(auto-update): ciclo $DATE"
+          git push -u origin "$BRANCH"
+
+          [ -f "$REPORT" ] || echo "Ciclo $DATE — relatório não gerado." > "$REPORT"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Auto-update $DATE" \
+            --body-file "$REPORT" \
+            --label "$LABELS"
+
+      - name: Abrir issue de falha se o ciclo quebrou (§9)
+        if: steps.cycle.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "maintenance-failure: ciclo $(date +%F)" \
+            --label "maintenance-failure" \
+            --body "O ciclo automático falhou. Veja o run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            || true
