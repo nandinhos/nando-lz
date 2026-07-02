@@ -34,7 +34,7 @@ use function Laravel\Prompts\warning;
  */
 #[Signature('app:setup
     {--name= : Nome da aplicação (humano)}
-    {--package= : Pacote Composer no formato autor/nome}
+    {--package= : Pacote Composer opcional para casos avançados}
     {--db= : Nome do banco de dados}
     {--url= : URL do repositório (http/https); use vazio para definir depois}
     {--port= : Porta pública (Docker)}
@@ -70,14 +70,13 @@ class SetupProject extends Command
             : str_replace('-', '_', $slug));
 
         $packageDefault = $slug.'/'.$slug;
-        $package = $this->option('package') ?: ($interactive
-            ? text(
-                'Pacote Composer (vendor/nome)',
-                default: $packageDefault,
-                validate: fn ($v) => preg_match('#^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9]([_.-]?[a-z0-9]+)*$#', $v) ? null : 'Formato inválido — use vendor/nome em minúsculas.',
-                hint: '"vendor" é autor/organização, não a pasta vendor/.'
-            )
-            : $packageDefault);
+        $package = $this->option('package') ?: $packageDefault;
+
+        if ($this->option('package') && ! preg_match('#^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9]([_.-]?[a-z0-9]+)*$#', (string) $package)) {
+            $this->error('Formato inválido para --package. Use autor/nome em minúsculas.');
+
+            return self::FAILURE;
+        }
 
         $vendor = explode('/', $package)[0];
 
@@ -128,7 +127,6 @@ class SetupProject extends Command
         // ---- Preview do plano ----
         table(['Campo', 'Valor'], [
             ['Nome', $appName],
-            ['Pacote', $package],
             ['Banco', $db],
             ['Repositório', $url !== '' ? $url : 'Ainda não informado'],
             ['Porta', (string) $port],

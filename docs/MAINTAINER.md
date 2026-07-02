@@ -41,17 +41,17 @@ Comando interativo (Laravel Prompts) que transforma um clone em projeto próprio
 php artisan app:setup            # interativo
 php artisan app:setup --preview  # mostra o plano e não altera nada
 # não-interativo (CI/scripts):
-php artisan app:setup --name="Acme CRM" --package="acme/crm" --db="acme_crm" \
+php artisan app:setup --name="Acme CRM" --db="acme_crm" \
   --url="https://github.com/acme/crm" --port=18000 --no-interaction
 # sem repositório remoto ainda:
-php artisan app:setup --name="Acme CRM" --package="acme/crm" --db="acme_crm" \
+php artisan app:setup --name="Acme CRM" --db="acme_crm" \
   --url= --port=18000 --no-interaction
 ```
 
 O que faz:
 
 1. **Preview** — sem `--preview`, o wizard ainda mostra o plano (arquivos a reescrever, arquivos a remover, porta, git) e pede confirmação antes de aplicar. Com `--preview`, só mostra e sai.
-2. **Rebrand** — reescreve identidade em todo o projeto: pacote Composer, `APP_NAME`, banco de dados (e o banco de teste `*_testing`), URL do repositório quando houver, títulos e referências. Se o repositório remoto ainda não existir, o wizard permite continuar e deixa `APP_GITHUB_URL` vazio para preenchimento posterior. Depois do rebrand, `/` mostra a welcome operacional do projeto, não a landing de divulgação do starter.
+2. **Rebrand** — reescreve identidade em todo o projeto: `APP_NAME`, pacote Composer derivado automaticamente do nome da aplicação, banco de dados (e o banco de teste `*_testing`), URL do repositório quando houver, títulos e referências. Se o repositório remoto ainda não existir, o wizard permite continuar e deixa `APP_GITHUB_URL` vazio para preenchimento posterior. Depois do rebrand, `/` mostra a welcome operacional do projeto, não a landing de divulgação do starter.
 3. **Porta sem conflito** — detecta portas ativas (banco, sistema, outros serviços) via bind de socket e sugere uma **porta alta livre** para o `APP_PORT`. O `install-docker.sh` faz a mesma checagem antes do `up`.
 4. **Automação silenciosa** — remove a automação do starter e mantém só o CI do projeto derivado. Não há escolha de Renovate/mantenedor no onboarding.
 5. **Reset git** (opcional, **opt-in**) — recomeça o histórico com um commit inicial. Por padrão o wizard **não** reseta: as mudanças ficam no working tree e são reversíveis com `git restore .`.

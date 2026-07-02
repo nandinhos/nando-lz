@@ -110,7 +110,7 @@ Clonou para começar algo seu? O `install.sh` oferece o **wizard de personaliza�
 php artisan app:setup
 ```
 
-Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco**, se já existe **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. Se você ainda não tiver repositório remoto, pode continuar e definir o `APP_GITHUB_URL` depois. Ele também **desanexa a automação do starter** silenciosamente, deixando só o CI para os seus testes.
+Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **banco**, se já existe **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. O pacote Composer é derivado automaticamente do nome da aplicação, então esse detalhe fica implícito. Se você ainda não tiver repositório remoto, pode continuar e definir o `APP_GITHUB_URL` depois. Ele também **desanexa a automação do starter** silenciosamente, deixando só o CI para os seus testes.
 
 - **Preview antes de aplicar:** `php artisan app:setup --preview` mostra exatamente o que mudaria, sem tocar em nada.
 - **Reversível:** por padrão as mudanças ficam no working tree — desfaça tudo com `git restore .`. O reset do histórico é opt-in e avisado.

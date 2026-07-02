@@ -164,11 +164,11 @@ it('app:setup permite continuar sem repositório remoto', function () {
     artisan('app:setup', ['--preview' => true, '--force' => true])
         ->expectsQuestion('Nome da aplicação', 'Topizeira')
         ->expectsQuestion('Banco de dados', 'topizeira_db')
-        ->expectsQuestion('Pacote Composer (vendor/nome)', 'topizeira/topizeira')
         ->expectsConfirmation('Já existe repositório Git remoto?', 'no')
         ->expectsQuestion('Porta pública (Docker)', '19000')
         ->expectsConfirmation('Resetar o histórico git?', 'no')
         ->expectsOutputToContain('somente CI')
+        ->doesntExpectOutputToContain('Pacote')
         ->doesntExpectOutputToContain('Renovate')
         ->doesntExpectOutputToContain('mantenedor')
         ->assertSuccessful();
