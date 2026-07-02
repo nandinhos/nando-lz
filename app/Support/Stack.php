@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\DB;
  */
 class Stack
 {
-    /** @return array{versions: array<string, ?string>, release: ?string, build: string, lastUpdate: ?array{date: string, ok: ?bool, path: string}} */
+    /** @return array{name: string, githubUrl: string, versions: array<string, ?string>, release: ?string, build: string, lastUpdate: ?array{date: string, ok: ?bool, path: string}} */
     public static function snapshot(): array
     {
         return [
+            'name' => (string) config('app.name', 'Laravel'),
+            'githubUrl' => rtrim((string) config('app.github_url', 'https://github.com/nandinhos/nando-lz'), '/'),
             'versions' => [
                 'Laravel' => static::locked('laravel/framework'),
                 'Filament' => static::locked('filament/filament'),

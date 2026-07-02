@@ -17,6 +17,17 @@ composer install --no-interaction --prefer-dist
 echo "→ npm install"
 npm install
 
+# .env + chave antes do wizard (que edita APP_NAME/DB_DATABASE no .env).
+[ -f .env ] || cp .env.example .env
+grep -qE '^APP_KEY=.+' .env || php artisan key:generate --force
+
+# Personalização (rebrand) — só num clone ainda não personalizado e com TTY.
+if [ -t 0 ] && grep -q '"name": "nandinhos/nando-lz"' composer.json; then
+  read -r -p "Personalizar este projeto agora (nome, pacote, banco)? [S/n] " ans
+  case "${ans:-s}" in [nN]) echo "Pulei — rode depois: php artisan app:setup" ;;
+    *) php artisan app:setup || true ;; esac
+fi
+
 bash scripts/bootstrap-app.sh
 
 # Bootstrap do primeiro admin (o comando se autoprotege contra duplicidade).

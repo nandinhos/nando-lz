@@ -4,6 +4,19 @@ Todas as mudanças relevantes deste projeto são documentadas aqui.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/) próprio, independente das versões da stack.
 
+## [1.3.0] - 2026-07-02
+
+### Adicionado
+
+- **Wizard `php artisan app:setup`** (Laravel Prompts): personaliza um clone em projeto próprio — reescreve o pacote Composer, `APP_NAME`, banco de dados (e `*_testing`), URL do repositório e todas as referências ao starter, de uma vez. Suporta modo não-interativo (opções + `--no-interaction`) para CI/scripts.
+- **Separação mantenedor × usuário**: o wizard **desanexa a automação de manutenção** (auto-update, compat-watch, Renovate, resolve/update-stack) num projeto novo, mantendo só o CI. Modos: `detach` (padrão), `renovate` (mantém Renovate + CI) e `maintainer` (não mexe em nada). Documentado em `docs/MAINTAINER.md`.
+- `install-local.sh` e `install-docker.sh` oferecem o wizard automaticamente num clone ainda não personalizado.
+
+### Alterado
+
+- **Landing dirigida por config**: a marca e a URL do repositório vêm de `config('app.name')` e `config('app.github_url')` (novo `APP_GITHUB_URL`) via `App\Support\Stack` — renomear o projeto repersonaliza a welcome automaticamente, sem editar a view.
+- O teste da welcome tolera a ausência de relatórios (projeto que desanexou a automação) — suíte com **23 testes / 59 asserts**.
+
 ## [1.2.0] - 2026-07-02
 
 ### Adicionado
