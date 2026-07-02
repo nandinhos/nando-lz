@@ -38,21 +38,27 @@ Detalhes de política em [AUTO_UPDATE_POLICY.md](AUTO_UPDATE_POLICY.md).
 Comando interativo (Laravel Prompts) que transforma um clone em projeto próprio. O `install.sh` o oferece automaticamente num clone ainda não personalizado.
 
 ```bash
-php artisan app:setup
+php artisan app:setup            # interativo
+php artisan app:setup --preview  # mostra o plano e não altera nada
 # não-interativo (CI/scripts):
 php artisan app:setup --name="Acme CRM" --package="acme/crm" --db="acme_crm" \
-  --url="https://github.com/acme/crm" --maintenance=detach --reset-git --no-interaction
+  --url="https://github.com/acme/crm" --port=18000 --maintenance=detach --no-interaction
 ```
 
 O que faz:
 
-1. **Rebrand** — reescreve identidade em todo o projeto: pacote Composer, `APP_NAME`, banco de dados (e o banco de teste `*_testing`), URL do repositório, títulos e referências. O `APP_NAME` alimenta a marca dos painéis e da landing automaticamente.
-2. **Modo de manutenção** (pergunta no wizard):
+1. **Preview** — sem `--preview`, o wizard ainda mostra o plano (arquivos a reescrever, arquivos a remover, porta, git) e pede confirmação antes de aplicar. Com `--preview`, só mostra e sai.
+2. **Rebrand** — reescreve identidade em todo o projeto: pacote Composer, `APP_NAME`, banco de dados (e o banco de teste `*_testing`), URL do repositório, títulos e referências. O `APP_NAME` alimenta a marca dos painéis e da landing automaticamente.
+3. **Porta sem conflito** — detecta portas ativas (banco, sistema, outros serviços) via bind de socket e sugere uma **porta alta livre** para o `APP_PORT`. O `install-docker.sh` faz a mesma checagem antes do `up`.
+4. **Modo de manutenção** (pergunta no wizard):
    - `detach` — remove toda a automação do mantenedor (mantém só o CI). **Padrão.**
    - `renovate` — remove o que atualiza o *starter*, mas mantém o Renovate + CI para as dependências do seu projeto.
    - `maintainer` — não mexe em nada (você é o mantenedor do `nando-lz`).
-3. **Reset git** (opcional) — recomeça o histórico com um commit inicial.
-4. **Re-hash do lock** — roda `composer update --lock` para o `composer validate --strict` do CI seguir verde após a troca de nome do pacote.
+5. **Reset git** (opcional, **opt-in**) — recomeça o histórico com um commit inicial. Por padrão o wizard **não** reseta: as mudanças ficam no working tree e são reversíveis com `git restore .`.
+6. **Re-hash do lock** — roda `composer update --lock` para o `composer validate --strict` do CI seguir verde após a troca de nome do pacote.
+
+> [!TIP]
+> Fluxo reversível recomendado: `app:setup --preview` → `app:setup` (aplica no working tree) → revise com `git diff` → se algo estiver errado, `git restore .` desfaz tudo; se estiver bom, comite (ou rode de novo com `--reset-git` para um histórico limpo).
 
 > [!NOTE]
 > O `app:setup` é de uso único: após rodar, o `composer.json` deixa de se chamar `nandinhos/nando-lz` e o próprio comando passa a se recusar a rodar de novo (use `--force` para forçar). Pode remover `app/Console/Commands/SetupProject.php` depois.

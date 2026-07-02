@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Ports;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -15,17 +16,21 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 /**
  * Wizard de personalização do starter (rebrand) para quem clona o nando-lz
  * para começar um projeto novo.
  *
- * - Renomeia identidade: pacote Composer, APP_NAME, banco de dados, URL do repo
- *   e todas as referências textuais ao starter.
- * - Separa os papéis: a automação de manutenção (auto-update, compat-watch,
- *   Renovate, resolve/update-stack) é do MANTENEDOR do nando-lz. Num projeto
- *   novo o wizard a desanexa (o CI permanece).
+ * - Renomeia identidade: pacote Composer, APP_NAME, banco de dados, URL do repo,
+ *   porta pública e todas as referências textuais ao starter.
+ * - Sugere uma porta ALTA livre (detecta o que está ativo) para não conflitar.
+ * - Separa os papéis: a automação de manutenção é do MANTENEDOR do nando-lz;
+ *   num projeto novo o wizard a desanexa (o CI permanece).
+ * - Reversível: por padrão as mudanças ficam no working tree (revira com
+ *   `git restore .`). O reset do histórico é opt-in e avisado.
  *
+ * Preview: `--preview` mostra o plano e não altera nada.
  * Não-interativo (CI/testes): passe as opções + --no-interaction.
  */
 #[Signature('app:setup
@@ -33,10 +38,12 @@ use function Laravel\Prompts\text;
     {--package= : Pacote Composer no formato vendor/nome}
     {--db= : Nome do banco de dados}
     {--url= : URL do repositório (GitHub)}
+    {--port= : Porta pública (Docker)}
     {--maintenance= : detach | renovate | maintainer}
-    {--reset-git : Resetar o histórico git}
+    {--reset-git : Resetar o histórico git (irreversível)}
+    {--preview : Mostrar o plano sem alterar nada}
     {--force : Ignorar a guarda de "já personalizado"}')]
-#[Description('Personaliza o starter (rebrand) e desanexa a automação do mantenedor.')]
+#[Description('Personaliza o starter (rebrand), sugere porta livre e desanexa a automação do mantenedor.')]
 class SetupProject extends Command
 {
     private const STARTER_PACKAGE = 'nandinhos/nando-lz';
@@ -44,8 +51,9 @@ class SetupProject extends Command
     public function handle(): int
     {
         $interactive = $this->input->isInteractive();
+        $preview = (bool) $this->option('preview');
 
-        intro('nando-lz · setup do projeto');
+        intro('nando-lz · setup do projeto'.($preview ? ' (preview)' : ''));
 
         if (! $this->option('force') && $this->currentPackage() !== self::STARTER_PACKAGE) {
             note('Este projeto já parece personalizado ('.$this->currentPackage().'). Use --force para rodar mesmo assim.');
@@ -69,7 +77,7 @@ class SetupProject extends Command
             return self::SUCCESS;
         }
 
-        // Coleta de identidade (opção da CLI vence; senão prompt; senão default).
+        // Identidade (opção da CLI vence; senão prompt; senão default).
         $appName = $this->option('name') ?: ($interactive
             ? text('Nome da aplicação', placeholder: 'Acme CRM', required: true)
             : 'App');
@@ -90,25 +98,23 @@ class SetupProject extends Command
             : 'https://github.com/'.$package);
         $url = rtrim($url, '/');
 
-        $resetGit = $this->option('reset-git') || ($interactive && confirm('Resetar o histórico git (novo começo para o seu projeto)?', default: true));
+        // Porta ALTA livre — detecta o que está ativo (banco, sistema, serviços).
+        $suggested = Ports::suggest($this->currentPort()) ?? $this->currentPort();
+        $port = (int) ($this->option('port') ?: ($interactive
+            ? text('Porta pública (Docker)', default: (string) $suggested, hint: 'sugerida por estar livre agora', validate: fn ($v) => preg_match('/^\d+$/', $v) && (int) $v >= 1024 && (int) $v <= 65535 ? null : 'Use uma porta entre 1024 e 65535.')
+            : $suggested));
 
-        table(['Campo', 'Valor'], [
-            ['Nome', $appName],
-            ['Pacote', $package],
-            ['Banco', $db],
-            ['Repositório', $url],
-            ['Manutenção', $maintenance === 'renovate' ? 'Renovate + CI' : 'somente CI'],
-            ['Reset git', $resetGit ? 'sim' : 'não'],
-        ]);
-
-        if ($interactive && ! confirm('Aplicar a personalização?', default: true)) {
-            outro('Cancelado — nada foi alterado.');
-
-            return self::SUCCESS;
+        if (! Ports::isFree($port)) {
+            warning("A porta {$port} parece ocupada agora — pode conflitar no `docker compose up`.");
         }
 
-        // strtr aplica as chaves mais longas primeiro e não reprocessa trechos já
-        // substituídos — resolve a precedência (URL > pacote > *_testing > db > slug).
+        $resetGit = (bool) $this->option('reset-git') || ($interactive && confirm(
+            label: 'Resetar o histórico git?',
+            default: false,
+            hint: 'torna a personalização IRREVERSÍVEL via git',
+        ));
+
+        // Precedência resolvida pelo strtr (chaves mais longas primeiro, sem reprocessar).
         $tokens = [
             'https://github.com/nandinhos/nando-lz' => $url,
             'nandinhos/nando-lz' => $package,
@@ -118,10 +124,42 @@ class SetupProject extends Command
             'nandinhos' => $vendor,
         ];
 
-        $count = $this->rewriteFiles($tokens);
-        $this->fixEnvAppName($appName);
+        $changed = $this->processFiles($tokens, apply: false);
+        $willRemove = $this->maintenancePaths($maintenance);
+        $existingRemovals = array_values(array_filter($willRemove, fn ($p) => is_file(base_path($p))));
 
-        $removed = $this->detachMaintenance($maintenance);
+        // ---- Preview do plano ----
+        table(['Campo', 'Valor'], [
+            ['Nome', $appName],
+            ['Pacote', $package],
+            ['Banco', $db],
+            ['Repositório', $url],
+            ['Porta', (string) $port],
+            ['Manutenção', $maintenance === 'renovate' ? 'Renovate + CI' : 'somente CI'],
+            ['Reset git', $resetGit ? 'sim (irreversível)' : 'não (reversível via git)'],
+        ]);
+        note(count($changed).' arquivo(s) serão reescritos'.($changed ? ":\n  ".implode("\n  ", array_slice($changed, 0, 40)).(count($changed) > 40 ? "\n  …" : '') : '.'));
+        if ($existingRemovals) {
+            note(count($existingRemovals).' arquivo(s) da automação do mantenedor serão removidos:'."\n  ".implode("\n  ", $existingRemovals));
+        }
+
+        if ($preview) {
+            outro('Preview — nada foi alterado. Rode sem --preview para aplicar.');
+
+            return self::SUCCESS;
+        }
+
+        if ($interactive && ! confirm('Aplicar a personalização?', default: true)) {
+            outro('Cancelado — nada foi alterado.');
+
+            return self::SUCCESS;
+        }
+
+        // ---- Aplicação ----
+        $this->processFiles($tokens, apply: true);
+        $this->fixEnvLine('APP_NAME', str_contains($appName, ' ') ? '"'.$appName.'"' : $appName);
+        $this->fixEnvLine('APP_PORT', (string) $port);
+        $removed = $this->removeMaintenance($existingRemovals);
 
         // O name do composer.json entra no content-hash do lock — re-hash para o
         // `composer validate --strict` do CI continuar verde. Best-effort.
@@ -129,11 +167,13 @@ class SetupProject extends Command
             exec('cd '.escapeshellarg(base_path()).' && composer update --lock --no-interaction 2>/dev/null');
         }
 
-        note("Reescritos: {$count} arquivos.".($removed ? " Removidos: {$removed} da automação do mantenedor." : ''));
+        note('Reescritos: '.count($changed).' arquivos.'.($removed ? " Removidos: {$removed} da automação do mantenedor." : ''));
 
         if ($resetGit) {
             $this->resetGit($appName);
             note('Histórico git resetado (commit inicial criado).');
+        } elseif (is_dir(base_path('.git'))) {
+            note('Reversível: confira com `git diff` e desfaça tudo com `git restore .` se precisar.');
         }
 
         outro("Projeto \"{$appName}\" pronto.\n  php artisan migrate && php artisan serve\n  (o comando app:setup já cumpriu seu papel — pode remover app/Console/Commands/SetupProject.php)");
@@ -148,8 +188,25 @@ class SetupProject extends Command
         return $data['name'] ?? '';
     }
 
-    /** Substitui os tokens em todos os arquivos de texto do projeto. */
-    private function rewriteFiles(array $tokens): int
+    /** Porta atual do .env/.env.example, ou o padrão alto do projeto. */
+    private function currentPort(): int
+    {
+        foreach (['.env', '.env.example'] as $rel) {
+            $path = base_path($rel);
+            if (is_file($path) && preg_match('/^APP_PORT=(\d+)/m', (string) file_get_contents($path), $m)) {
+                return (int) $m[1];
+            }
+        }
+
+        return Ports::DEFAULT_PREFERRED;
+    }
+
+    /**
+     * Aplica (ou apenas coleta) as substituições de token nos arquivos de texto.
+     *
+     * @return list<string> caminhos relativos que mudam
+     */
+    private function processFiles(array $tokens, bool $apply): array
     {
         $finder = (new Finder)
             ->files()
@@ -164,14 +221,16 @@ class SetupProject extends Command
             ->notPath('config/app.php')
             ->ignoreDotFiles(false);
 
-        $changed = 0;
+        $changed = [];
         foreach ($finder as $file) {
             $path = $file->getRealPath();
             $original = (string) file_get_contents($path);
             $new = strtr($original, $tokens);
             if ($new !== $original) {
-                file_put_contents($path, $new);
-                $changed++;
+                $changed[] = $file->getRelativePathname();
+                if ($apply) {
+                    file_put_contents($path, $new);
+                }
             }
         }
 
@@ -181,30 +240,39 @@ class SetupProject extends Command
             $c = (string) file_get_contents($path);
             $n = str_replace('https://github.com/nandinhos/nando-lz', $tokens['https://github.com/nandinhos/nando-lz'], $c);
             if ($n !== $c) {
-                file_put_contents($path, $n);
-                $changed++;
+                $changed[] = $rel;
+                if ($apply) {
+                    file_put_contents($path, $n);
+                }
             }
         }
+
+        sort($changed);
 
         return $changed;
     }
 
-    /** APP_NAME deve ser o nome humano (com aspas), não o slug gerado pelo strtr. */
-    private function fixEnvAppName(string $appName): void
+    /** Reescreve uma variável no .env e no .env.example. */
+    private function fixEnvLine(string $key, string $value): void
     {
         foreach (['.env', '.env.example'] as $rel) {
             $path = base_path($rel);
             if (! is_file($path)) {
                 continue;
             }
-            $value = str_contains($appName, ' ') ? '"'.$appName.'"' : $appName;
-            $c = preg_replace('/^APP_NAME=.*$/m', 'APP_NAME='.$value, (string) file_get_contents($path));
+            $c = (string) file_get_contents($path);
+            $line = $key.'='.$value;
+            // Escapa \ e $ na substituição (evita interpretação de backreference).
+            $replacement = addcslashes($line, '\\$');
+            $c = preg_match('/^'.$key.'=.*/m', $c)
+                ? preg_replace('/^'.$key.'=.*/m', $replacement, $c)
+                : rtrim($c, "\n")."\n".$line."\n";
             file_put_contents($path, $c);
         }
     }
 
-    /** Remove os pontos de entrada da automação do mantenedor. Retorna quantos apagou. */
-    private function detachMaintenance(string $mode): int
+    /** Pontos de entrada da automação do mantenedor. */
+    private function maintenancePaths(string $mode): array
     {
         $paths = [
             '.github/workflows/auto-update.yml',
@@ -216,8 +284,13 @@ class SetupProject extends Command
             $paths[] = 'renovate.json';
         }
 
+        return $paths;
+    }
+
+    private function removeMaintenance(array $existing): int
+    {
         $removed = 0;
-        foreach ($paths as $rel) {
+        foreach ($existing as $rel) {
             if (@unlink(base_path($rel))) {
                 $removed++;
             }

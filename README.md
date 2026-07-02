@@ -108,7 +108,13 @@ Clonou para começar algo seu? O `install.sh` oferece o **wizard de personaliza�
 php artisan app:setup
 ```
 
-Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco** e a **URL do repositório**, e reescreve toda a identidade do projeto de uma vez. Ele também **desanexa a automação de manutenção** (que é do mantenedor do `nando-lz`), deixando só o CI para os seus testes. Detalhes em [docs/MAINTAINER.md](docs/MAINTAINER.md).
+Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco**, a **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. Ele também **desanexa a automação de manutenção** (que é do mantenedor do `nando-lz`), deixando só o CI para os seus testes.
+
+- **Preview antes de aplicar:** `php artisan app:setup --preview` mostra exatamente o que mudaria, sem tocar em nada.
+- **Reversível:** por padrão as mudanças ficam no working tree — desfaça tudo com `git restore .`. O reset do histórico é opt-in e avisado.
+- **Porta sem conflito:** detecta o que está ativo (banco, sistema, outros serviços) e sugere uma **porta alta livre** para o `APP_PORT`.
+
+Detalhes em [docs/MAINTAINER.md](docs/MAINTAINER.md).
 
 ---
 

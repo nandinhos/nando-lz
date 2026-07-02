@@ -17,12 +17,27 @@ docker compose version >/dev/null 2>&1 || { echo "'docker compose' (v2) não enc
 # para 'db' pelo próprio compose, então o mesmo .env serve para local e Docker.
 [ -f .env ] || { cp .env.example .env; echo "→ .env criado a partir de .env.example"; }
 
-echo "→ build e subida dos containers (o app se auto-bootstrapa)"
-docker compose up -d --build
-
 # `|| true`: sem a linha APP_PORT no .env, o grep retorna 1 e o set -e mataria o script.
 PORT="$(grep -E '^APP_PORT=' .env 2>/dev/null | cut -d= -f2 || true)"
 PORT="${PORT:-18000}"
+
+# Detecção de conflito de porta (via /dev/tcp do bash — sem ferramenta externa):
+# se algo já escuta na porta, sugere a próxima alta livre antes do `up`.
+port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && { exec 3>&- 3<&-; return 0; } || return 1; }
+if port_busy "$PORT"; then
+  FREE="$PORT"; for _ in $(seq 1 500); do FREE=$((FREE + 1)); port_busy "$FREE" || break; done
+  echo "⚠ porta $PORT ocupada no host. Porta alta livre sugerida: $FREE"
+  if [ -t 0 ]; then
+    read -r -p "Usar a porta $FREE? [S/n] " ans
+    case "${ans:-s}" in [nN]) echo "  Mantendo $PORT (pode falhar no up). Ajuste APP_PORT no .env." ;;
+      *) sed -i.bak "s/^APP_PORT=.*/APP_PORT=$FREE/" .env && rm -f .env.bak; PORT="$FREE"; echo "→ APP_PORT=$FREE gravado no .env" ;; esac
+  else
+    echo "  Modo não-interativo: ajuste APP_PORT no .env para evitar conflito." >&2
+  fi
+fi
+
+echo "→ build e subida dos containers (o app se auto-bootstrapa)"
+docker compose up -d --build
 
 # Primeiro boot compila vendor+assets no container — dê tempo de sobra.
 echo "→ aguardando o app responder em http://localhost:$PORT (até 5 min no primeiro boot)…"

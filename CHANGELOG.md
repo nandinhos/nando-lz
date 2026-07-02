@@ -4,6 +4,18 @@ Todas as mudanças relevantes deste projeto são documentadas aqui.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/) próprio, independente das versões da stack.
 
+## [1.4.0] - 2026-07-02
+
+### Adicionado
+
+- **Detecção de portas** (`App\Support\Ports`): varre o que está ativo no host (banco, sistema, outros serviços) via bind de socket e **sugere uma porta alta livre**. O wizard `app:setup` usa isso no campo `APP_PORT`, e o `install-docker.sh` checa a porta (via `/dev/tcp`) antes do `up`, oferecendo a próxima livre. +2 testes (suíte: **25 testes / 70 asserts**).
+- **`app:setup --preview`**: mostra o plano completo (arquivos a reescrever, arquivos a remover, porta, git) sem alterar nada. O modo interativo também exibe o plano antes de confirmar.
+
+### Alterado
+
+- **`app:setup` reversível por padrão**: as mudanças ficam no working tree — desfaça tudo com `git restore .`. O reset do histórico virou **opt-in** (`--reset-git`) e avisado como irreversível (antes era o padrão).
+- O wizard agora coleta e grava a **porta** (`APP_PORT`) no `.env`.
+
 ## [1.3.0] - 2026-07-02
 
 ### Adicionado
