@@ -1,0 +1,12 @@
+# Configuração do GitGuardian / ggshield.
+#
+# "postgres" é a SENHA PADRÃO DE DESENVOLVIMENTO do PostgreSQL, especificada no
+# PRD (§5.5) e usada apenas localmente e no serviço efêmero do CI. NÃO é um
+# segredo real: em produção/VPS a senha vai no .env (que nunca é versionado).
+# Este ignore evita falso-positivo de "Generic Password" nessas 3 ocorrências
+# (.env.example, .github/workflows/ci.yml, .github/workflows/auto-update.yml).
+version: 2
+secret:
+  ignored-matches:
+    - name: "PostgreSQL dev default (placeholder, não é segredo real)"
+      match: postgres
