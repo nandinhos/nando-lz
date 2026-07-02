@@ -58,17 +58,15 @@ if [ -t 0 ] && grep -q '"name": "nandinhos/nando-lz"' composer.json; then
   read -r -p "Personalizar este projeto agora (nome, pacote, banco)? [S/n] " ans
   case "${ans:-s}" in
     [nN]) echo "Pulei — rode depois: docker compose exec app php artisan app:setup" ;;
-    *) docker compose exec app php artisan app:setup || true
-       echo "→ recriando containers para aplicar o novo banco…"
-       docker compose down -v && docker compose up -d ;;
+    *) {
+         docker compose exec app php artisan app:setup || true
+         echo "→ recriando containers para aplicar o novo banco…"
+         docker compose down -v && docker compose up -d
+       } ;;
   esac
 fi
 
-cat <<EOF
-
-Pronto. App em http://localhost:$PORT  ·  Painéis: /ops /admin /support
-
-Crie o primeiro admin e rode os testes:
-  docker compose exec app php artisan superadmin:create
-  docker compose exec app php artisan test
-EOF
+printf '\nPronto. App em http://localhost:%s  ·  Painéis: /ops /admin /support\n\n' "$PORT"
+printf 'Crie o primeiro admin e rode os testes:\n'
+printf '  docker compose exec app php artisan superadmin:create\n'
+printf '  docker compose exec app php artisan test\n'
