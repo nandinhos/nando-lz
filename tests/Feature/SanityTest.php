@@ -16,6 +16,21 @@ it('sobe e responde na rota inicial', function () {
     get('/')->assertOk();
 });
 
+it('mostra na welcome as versões reais do lock e o monitor de atualização', function () {
+    $lock = json_decode((string) file_get_contents(base_path('composer.lock')), true);
+    $locked = collect(array_merge($lock['packages'], $lock['packages-dev']))
+        ->keyBy('name')->map(fn ($p) => ltrim($p['version'], 'v'));
+
+    get('/')
+        ->assertOk()
+        ->assertSee($locked['laravel/framework'])
+        ->assertSee($locked['filament/filament'])
+        ->assertSee($locked['livewire/livewire'])
+        ->assertSee(Build::id())
+        // monitor: o relatório mais recente de docs/reports/auto-update/
+        ->assertSee(basename((string) last(glob(base_path('docs/reports/auto-update/*.md'))), '.md'));
+});
+
 it('mostra a página de login de cada painel', function (string $panel) {
     get("/{$panel}/login")->assertOk();
 })->with($panels);
