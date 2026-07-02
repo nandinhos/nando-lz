@@ -93,3 +93,15 @@ Cada ciclo gera `docs/reports/auto-update/YYYY-MM-DD.md` com:
 Já existe um primeiro relatório de exemplo em `docs/reports/auto-update/`.
 
 O script `update-stack.sh [--dry-run]` gera o relatório **mesmo em falha** (exit `1`); com `--dry-run` não altera locks. Por isso ele usa `set -uo pipefail` **sem o `-e`, de propósito**: cada gate que falha é coletado e o relatório sai completo mesmo assim. Ele **nunca** cria branch, commita ou faz push — isso é responsabilidade do workflow.
+
+## Documentação sempre exata (guarda de drift)
+
+As versões exibidas **têm que bater exato** com a stack instalada, em três lugares:
+
+- **Landing + monitor** (`welcome`): leem do `composer.lock`/runtime via `App\Support\Stack` — exatos por construção, sem número hardcoded.
+- **README**: badges e tabela de stack ficam entre marcadores `<!-- stack:… -->` e são gerados a partir da fonte única (`composer.lock`, `composer.json`, `docker-compose.yml`, `ci.yml`) por `php artisan stack:sync`.
+
+Dois mecanismos garantem que nunca divirja:
+
+1. **Fluxo de update** — `update-stack.sh` roda `stack:sync` a cada ciclo, então todo bump de versão já atualiza o README.
+2. **Gate no CI** — um teste Pest roda `stack:sync --check` e **falha** se o README divergir da stack. Qualquer PR (agente, Renovate ou humano) que mude versões sem sincronizar fica vermelho. Correção: `php artisan stack:sync`.

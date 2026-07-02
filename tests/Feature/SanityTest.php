@@ -131,3 +131,8 @@ it('rejeita credenciais inválidas na página de login do Filament', function ()
 it('roda as migrations em banco limpo (tabela users existe)', function () {
     expect(Schema::hasTable('users'))->toBeTrue();
 });
+
+it('README bate exato com a stack instalada (guarda de drift)', function () {
+    // Falha qualquer PR que bump de versão sem sincronizar o README.
+    artisan('stack:sync', ['--check' => true])->assertSuccessful();
+});
