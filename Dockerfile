@@ -13,10 +13,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Usuário não-root com o UID do host (padrão 1000): tudo que o container criar
+# no bind-mount (vendor/, node_modules/, .env, storage/) continua editável no
+# host, e a troca Docker↔Local não deixa arquivos root-owned para trás.
+ARG UID=1000
+RUN useradd -m -u "${UID}" app
+
 WORKDIR /var/www/html
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
+
+USER app
 
 EXPOSE 8000
 ENTRYPOINT ["entrypoint"]

@@ -1,17 +1,26 @@
 # nando-lz — modo Docker (PRD §13). `docker compose up -d` sobe app + banco
 # de forma autossuficiente (o entrypoint faz o bootstrap). Sem PHP/PostgreSQL
 # locais necessários.
+#
+# NÃO use `env_file:` aqui: o .env já é bind-mounted e lido pelo Laravel.
+# Injetá-lo como ambiente real do container congelaria os valores na criação
+# (ambiente real vence o arquivo .env e os <env> do phpunit.xml) — o sintoma
+# clássico é `php artisan test` apontar para o banco de dev e apagá-lo.
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # UID do usuário do host: arquivos criados no bind-mount (vendor/,
+        # node_modules/, .env, storage/) permanecem editáveis fora do container.
+        UID: ${UID:-1000}
+    restart: unless-stopped
     # Porta alta por padrão para não conflitar com outros serviços do host/VPS.
     # Ajuste com APP_PORT no .env (ex.: APP_PORT=18000 → http://localhost:18000).
     ports:
       - "${APP_PORT:-18000}:8000"
     volumes:
       - .:/var/www/html
-    env_file:
-      - .env
     environment:
       DB_HOST: db
       PHP_CLI_SERVER_WORKERS: 4
@@ -21,12 +30,16 @@ services:
 
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-nando_lz}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Cria o banco de teste (nando_lz_testing) na primeira inicialização do
+      # volume — necessário para `docker compose exec app php artisan test`.
+      - ./docker/pg-init.sql:/docker-entrypoint-initdb.d/10-testing-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-nando_lz}"]
       interval: 5s

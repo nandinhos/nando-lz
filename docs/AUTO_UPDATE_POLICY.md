@@ -9,11 +9,12 @@ Como o nando-lz se mantém *evergreen* sem intervenção manual constante — e 
 Arquivo `renovate.json`:
 
 - `rangeStrategy: update-lockfile` — atualiza **só o lock**, preservando as constraints do `composer.json`.
-- **Majors desabilitados** aqui.
-- Agenda **semanal**, segunda de manhã, timezone `America/Sao_Paulo`.
+- **Majors desabilitados apenas para composer/npm** (são responsabilidade do agente, Camada 2). **GitHub Actions ficam em grupo próprio, com majors permitidos** — evita ficar preso em actions com runtime Node deprecado.
+- Agenda no **sábado** de manhã, timezone `America/Sao_Paulo` — deliberadamente **sem colidir** com o ciclo do agente na segunda.
 - Labels `auto-update` e `dependencies`; alertas de vulnerabilidade com label `security`.
 
-> **Requer habilitar o app Renovate no repositório, no GitHub.** Sem isso, o Renovate não abre PRs.
+> [!WARNING]
+> **Requer habilitar o app Renovate no repositório, no GitHub.** Sem isso, o `renovate.json` não tem efeito e o Renovate não abre PRs.
 
 ### Camada 2 — Agente de IA
 
@@ -24,6 +25,17 @@ Workflow `auto-update.yml`. **Decide e documenta**, mas **não faz merge**. Roda
 Workflow `ci.yml` é o **gate universal**, complementado por **branch protection na `main`**. Nenhuma mudança entra na `main` sem CI verde.
 
 ## Classes de mudança (§7.2)
+
+```mermaid
+flowchart TD
+    M[Mudança detectada no ciclo] --> Q1{Patch ou minor só no lock?}
+    Q1 -->|sim| AUTO[AUTO - aplica na branch, valida e abre PR]
+    Q1 -->|não| Q2{Major, constraint ou mudança estrutural?}
+    Q2 -->|sim| REV[REVIEW - PR com needs-human-approval]
+    Q2 -->|não| Q3{Upstream bloqueado?}
+    Q3 -->|sim| BLK[BLOCKED - sem PR, issue rastreadora]
+    Q3 -->|não| NOP[Nada a fazer neste ciclo]
+```
 
 | Classe | O que é | Ação | Merge |
 |--------|---------|------|-------|
@@ -39,7 +51,7 @@ Workflow `ci.yml` é o **gate universal**, complementado por **branch protection
 4. `composer validate --strict`.
 5. `composer audit` (**falha = bloqueio**) e `npm audit --audit-level=high`.
 6. Migrations em banco efêmero limpo (serviço PostgreSQL).
-7. Suíte Pest completa.
+7. Suíte Pest completa (22 testes).
 8. Build de assets.
 9. Smoke HTTP dos 3 painéis (200/302 autenticado) — coberto pela suíte Pest.
 10. Validar `POST /logout`.
@@ -51,9 +63,17 @@ Workflow `ci.yml` é o **gate universal**, complementado por **branch protection
 
 Workflows em `.github/workflows/`:
 
-- **`ci.yml`** — gate universal. Dispara em push (`main` e `maintenance/**`), `pull_request` e manual. Matriz **PHP 8.3 e 8.4 × PostgreSQL 16** (banco `nando_lz_testing`). Passos: `composer validate --strict`, install, `key:generate`, `vendor/bin/pint --test`, `migrate --force`, `npm ci` + `npm run build`, `./vendor/bin/pest`.
-- **`auto-update.yml`** — ciclo semanal do agente. Cron `0 11 * * 1` (UTC) = **segunda 08:00 America/Sao_Paulo**; também `workflow_dispatch`. Cria branch `maintenance/auto-update-YYYY-MM-DD`, roda `scripts/update-stack.sh` e **abre PR (nunca faz merge)**. Labels: `auto-update` sempre; `needs-human-approval` se o `composer.json` mudou (major/constraint = REVIEW) ou se o ciclo falhou. Falha do ciclo gera issue `maintenance-failure`. Permissões: contents / pull-requests / issues write.
-- **`compat-watch.yml`** — vigia a janela de incompatibilidade (§4.2). Semanal. Roda `resolve-stack.sh`; se `blocked_upstream` for verdadeiro, cria/atualiza a issue rastreadora `compat: aguardando Filament x Laravel N` (label `blocked-upstream`); quando o upstream liberar, fecha a issue.
+- **`ci.yml`** — gate universal. Dispara em push (`main` e `maintenance/**`), `pull_request` e manual. Matriz **PHP 8.3 e 8.4 × PostgreSQL 16** (banco `nando_lz_testing`). Usa `actions/checkout@v7`, `actions/setup-node@v6` e `actions/cache@v6` (cache do Composer por hash do `composer.lock` + versão do PHP da matriz) — sem warnings de runtime Node 20. Passos: `composer validate --strict`, install, `key:generate`, `vendor/bin/pint --test`, `migrate --force`, `npm ci` + `npm run build`, `./vendor/bin/pest`.
+
+- **`auto-update.yml`** — ciclo semanal do agente. Cron `0 11 * * 1` (UTC) = **segunda 08:00 America/Sao_Paulo**; também `workflow_dispatch`. Cria branch `maintenance/auto-update-YYYY-MM-DD`, roda `scripts/update-stack.sh` e **abre PR (nunca faz merge)**. Comportamentos importantes:
+  - **Não abre PR se só o relatório mudou** — o relatório sozinho não justifica ciclo de review.
+  - Push com `git push --force-with-lease`: um **re-run no mesmo dia** sobrescreve a própria branch com segurança.
+  - **Cria o PR ou atualiza o corpo** se ele já existir (re-run do dia).
+  - **Bootstrap idempotente de labels** (`auto-update`, `needs-human-approval`, `security`) — funciona em forks/clones novos.
+  - Após abrir o PR, dispara `gh workflow run ci.yml --ref <branch>`: pushes feitos com `GITHUB_TOKEN` **não disparam workflows** (regra do GitHub Actions) e, sem esse dispatch, o PR ficaria preso em "Expected" nos required checks. Por isso o workflow tem permissão `actions: write`.
+  - Labels: `auto-update` sempre; `needs-human-approval` se o `composer.json` mudou (major/constraint = REVIEW) ou se o ciclo falhou. Falha do ciclo gera issue `maintenance-failure`.
+
+- **`compat-watch.yml`** — vigia a janela de incompatibilidade (§4.2). Semanal. Roda `resolve-stack.sh`; se `blocked_upstream` for verdadeiro, cria/atualiza a issue rastreadora `compat: aguardando Filament x Laravel N` — onde **N é a major aguardada correta**: a última estável do Laravel que o Filament ainda não suporta. Faz bootstrap idempotente do label `blocked-upstream`; quando o upstream liberar, fecha a issue.
 
 ## Relatórios (§9)
 
@@ -72,4 +92,4 @@ Cada ciclo gera `docs/reports/auto-update/YYYY-MM-DD.md` com:
 
 Já existe um primeiro relatório de exemplo em `docs/reports/auto-update/`.
 
-O script `update-stack.sh [--dry-run]` gera o relatório mesmo em falha (exit `1`); com `--dry-run` não altera locks. Ele **nunca** cria branch, commita ou faz push — isso é responsabilidade do workflow.
+O script `update-stack.sh [--dry-run]` gera o relatório **mesmo em falha** (exit `1`); com `--dry-run` não altera locks. Por isso ele usa `set -uo pipefail` **sem o `-e`, de propósito**: cada gate que falha é coletado e o relatório sai completo mesmo assim. Ele **nunca** cria branch, commita ou faz push — isso é responsabilidade do workflow.

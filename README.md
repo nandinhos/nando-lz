@@ -8,6 +8,10 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+<p align="center">
+  <img src="docs/images/dashboard-ops.png" alt="Painel ops do nando-lz — dashboard com o identificador de build no rodapé da sidebar" width="100%">
+</p>
+
 Starter kit técnico **público** e *evergreen* para novos projetos **Laravel + Filament**: limpo, genérico, reproduzível e **permanentemente atualizado por automação**. Clone, rode um único script e tenha, em minutos, uma aplicação funcional na última versão estável e mutuamente compatível de toda a stack.
 
 > **É uma fundação técnica, não um produto.** Não há SaaS, landing page, checkout, pagamento, convite, multitenancy nem qualquer regra de negócio. Só estrutura conhecida-boa para você construir por cima.
@@ -52,8 +56,10 @@ Manter um projeto Laravel + Filament sempre atualizado é trabalhoso: as versõe
 - ✅ **Autenticação** oficial do Filament, **sem registro público**, com página de perfil e **2FA opcional** (opt-in).
 - ✅ **`POST /logout`** nativo (nunca GET) — encerra a sessão, invalida-a e regenera o token CSRF.
 - ✅ Comando **`superadmin:create`** para o primeiro administrador, com guarda de duplicidade e senha forte.
-- ✅ **Pest** com suíte mínima de sanidade (20 testes) sobre **PostgreSQL**.
+- ✅ **Pest** com suíte de sanidade (**22 testes, 53 asserts**) sobre **PostgreSQL** — inclui login por credenciais válidas/inválidas na página do Filament.
 - ✅ **Dois modos de instalação idempotentes**: Local e Docker, ambos por um único script.
+- ✅ **Docker não-root**: o container roda como usuário `app` com UID do host — nada de arquivos root-owned no bind-mount.
+- ✅ **Banco de teste isolado no Docker** (`nando_lz_testing`, criado por `docker/pg-init.sql`) — `php artisan test` no container nunca toca o banco de dev.
 - ✅ **Identificador de build** no rodapé da sidebar de todos os painéis.
 - ✅ **Resolvedor de compatibilidade** (`resolve-stack.sh`) e **ciclo de atualização** (`update-stack.sh`).
 - ✅ **CI/CD**: workflows `ci`, `auto-update` e `compat-watch` + configuração do Renovate.
@@ -63,7 +69,7 @@ Manter um projeto Laravel + Filament sempre atualizado é trabalhoso: as versõe
 
 ## Pré-requisitos
 
-**Modo Local:** PHP `>= 8.3` com `ext-intl`, Composer, Node 22, PostgreSQL 16 (o `check-requirements.sh` valida tudo).
+**Modo Local:** PHP `>= 8.3` com `ext-intl`, Composer, Node 22, PostgreSQL 16. O `check-requirements.sh` valida a **versão do PHP** (≥ 8.3.0), a extensão `ext-intl`, a **presença** de `composer`, `node` e `psql` (sem checar a versão destes) e as permissões de escrita em `storage`/`bootstrap/cache`.
 
 **Modo Docker:** apenas Docker + `docker compose` (v2). Não exige PHP nem PostgreSQL na máquina.
 
@@ -91,6 +97,9 @@ O instalador é interativo e também aceita o modo direto: `./scripts/install.sh
 
 No modo Docker a porta pública é **alta por padrão** (`18000`) para evitar conflitos — acesse `http://localhost:18000`. No modo Local, `php artisan serve` usa `http://127.0.0.1:8000`.
 
+> [!NOTE]
+> No Docker, os testes rodam contra o banco dedicado `nando_lz_testing` (definido nos `<env>` do `phpunit.xml` e criado por `docker/pg-init.sql`) — o comando `docker compose exec app php artisan test` é seguro e nunca toca o banco de desenvolvimento. Ver [docs/DOCKER.md](docs/DOCKER.md).
+
 ---
 
 ## Stack
@@ -103,11 +112,11 @@ Travada e verificada em 2026-07-01. **O Filament é o pacote limitante:** a majo
 | Filament | 5.6.7 | pacote limitante |
 | Livewire | 4.3.3 | transitivo via Filament — **nunca fixar direto** |
 | Pest | 4.7 | framework único de testes |
-| PHP | `^8.3` | validado em 8.3 e 8.4 no CI |
+| PHP | `^8.3` | piso; validado em 8.3 e 8.4 no CI (o Docker usa 8.4) |
 | PostgreSQL | 16 | banco padrão; pgvector opcional |
 | Node | 22 | build de assets |
 
-Versões instáveis (`alpha`/`beta`/`RC`/`dev`/`nightly`) são **proibidas sem autorização humana em issue**. A resolução completa (ordem §4.1, janela de incompatibilidade §4.2) está em [docs/STACK.md](docs/STACK.md) e é implementada por [`scripts/resolve-stack.sh`](scripts/resolve-stack.sh), que emite um JSON com a stack atual, o alvo e um flag `blocked_upstream`.
+O `composer.json` fixa `config.platform.php = 8.3.0`, garantindo que o lock resolvido seja sempre válido no piso da constraint. Versões instáveis (`alpha`/`beta`/`RC`/`dev`/`nightly`) são **proibidas sem autorização humana em issue**. A resolução completa (ordem §4.1, janela de incompatibilidade §4.2) está em [docs/STACK.md](docs/STACK.md) e é implementada por [`scripts/resolve-stack.sh`](scripts/resolve-stack.sh), que emite um JSON com a stack atual, o alvo e um flag `blocked_upstream`.
 
 ---
 
@@ -120,6 +129,23 @@ Apenas estrutura inicial, sem domínio de negócio. Cada painel tem login (sem r
 | `ops` | `/ops` | Blue | Administração global |
 | `admin` | `/admin` | Amber | Aplicação principal (painel default) |
 | `support` | `/support` | Emerald | Suporte e manutenção |
+
+| `/ops/login` — Blue | `/admin/login` — Amber | `/support/login` — Emerald |
+|:--:|:--:|:--:|
+| <img src="docs/images/login-ops.png" width="260" alt="Login do painel ops, tema Blue"> | <img src="docs/images/login-admin.png" width="260" alt="Login do painel admin, tema Amber"> | <img src="docs/images/login-support.png" width="260" alt="Login do painel support, tema Emerald"> |
+
+<details>
+<summary><strong>Mais screenshots</strong> — dashboards admin/support e página de perfil</summary>
+
+| `/admin` | `/support` |
+|:--:|:--:|
+| <img src="docs/images/dashboard-admin.png" width="400" alt="Dashboard do painel admin"> | <img src="docs/images/dashboard-support.png" width="400" alt="Dashboard do painel support"> |
+
+| Página de perfil (com seção de 2FA opcional) |
+|:--:|
+| <img src="docs/images/profile.png" width="400" alt="Página de perfil do usuário"> |
+
+</details>
 
 Todo usuário autenticado acessa os três painéis — `User::canAccessPanel()` retorna `true`, pois não há papéis nem permissões. **É aqui que você restringe o acesso ao introduzir regra de negócio.**
 
@@ -137,16 +163,19 @@ php artisan superadmin:create
 
 - **Bootstrap único:** só roda enquanto não existir nenhum usuário; os demais são criados pelo painel.
 - **Interativo por padrão.** Os argumentos `--name --email --password` só são aceitos em `local`/`dev`.
-- **Senha forte fora de `local`:** mínimo 12 caracteres com maiúsculas, minúsculas, números e símbolos (recusa senhas triviais). Em `local`, mínimo 8.
+- **`email_verified_at` atribuído explicitamente** (fica fora do `$fillable` por design — mass assignment o descartaria).
+
+> [!IMPORTANT]
+> Fora de `local`, a senha forte é obrigatória: mínimo 12 caracteres com maiúsculas, minúsculas, números e símbolos — senhas triviais são recusadas. Em `local`, o mínimo é 8.
 
 ---
 
 ## Identificador de build
 
-Todos os painéis mostram, no rodapé da sidebar, o identificador do build — útil para confirmar visualmente a versão implantada. Resolvido por `App\Support\Build::id()` na seguinte precedência:
+Todos os painéis mostram, no rodapé da sidebar, o identificador do build — útil para confirmar visualmente a versão implantada (visível no screenshot no topo deste README). Resolvido por `App\Support\Build::id()` na seguinte precedência:
 
 1. `config('app.build')` (variável de ambiente `APP_BUILD`);
-2. arquivo `build.json` na raiz (chave `build`), gerado no build;
+2. arquivo `build.json` na raiz (chave `build`), gerado no build — valores não-escalares são ignorados (proteção contra derrubar os painéis);
 3. hash curto do commit Git;
 4. `dev`.
 
@@ -163,11 +192,13 @@ app/
   Support/Build.php                       Resolução do identificador de build (§5.6)
 docker/
   entrypoint.sh                           Bootstrap idempotente do modo Docker
+  pg-init.sql                             Cria o banco de teste na 1ª inicialização do volume
 scripts/                                  Instalação e manutenção (ver abaixo)
-tests/Feature/SanityTest.php              Suíte Pest de sanidade
+tests/Feature/SanityTest.php              Suíte Pest de sanidade (22 testes)
 docs/                                     Documentação + docs/reports/auto-update/ (relatórios de ciclo)
 .github/workflows/                        ci.yml · auto-update.yml · compat-watch.yml
-Dockerfile · docker-compose.yml           Modo Docker
+Dockerfile · docker-compose.yml           Modo Docker (container não-root, restart: unless-stopped)
+.dockerignore                             Contexto de build reduzido a poucos KB
 renovate.json                             Camada 1 da automação
 .env.example                              PostgreSQL por padrão
 ```
@@ -176,37 +207,56 @@ renovate.json                             Camada 1 da automação
 
 ## Scripts
 
-Todos em `scripts/`, com `set -euo pipefail`, **idempotentes** e sem `git push` embutido.
+Todos em `scripts/`, **idempotentes** e sem `git push` embutido. Todos usam `set -euo pipefail` — exceto `update-stack.sh`, que dispensa o `-e` **de propósito** para coletar falhas de todos os gates e ainda gerar o relatório do ciclo.
 
 | Script | Função |
 |--------|--------|
 | `install.sh` | Entrada única — menu `1) Local  2) Docker` |
 | `install-local.sh` | Instalação Local (sem Docker) |
-| `install-docker.sh` | Instalação via Docker (sem PHP/PostgreSQL locais) |
-| `check-requirements.sh` | Valida PHP, `ext-intl`, Composer, Node, psql e permissões (exit codes 10–15) |
+| `install-docker.sh` | Instalação via Docker (sem PHP/PostgreSQL locais); espera até 5 min no primeiro boot |
+| `check-requirements.sh` | Valida versão do PHP, `ext-intl`, presença de Composer/Node/psql e permissões (exit codes 10–15) |
 | `bootstrap-app.sh` | `.env`, chave, migrations e build — idempotente (`--no-build`, respeita `ARTISAN`) |
 | `reset-app.sh` | Recria o banco limpo (destrutivo; `--force`) |
 | `test-app.sh` | Roda o Pest |
-| `resolve-stack.sh` | Resolvedor de compatibilidade (§4.1), saída JSON |
+| `resolve-stack.sh` | Resolvedor de compatibilidade (§4.1), saída JSON, timeouts de rede explícitos |
 | `update-stack.sh` | Ciclo do agente (§7): gates + relatório (`--dry-run`); **não faz push** |
 
 ---
 
 ## Testes
 
-Suíte Pest mínima de sanidade sobre PostgreSQL (banco de teste `nando_lz_testing`, via `RefreshDatabase`):
+Suíte Pest de sanidade sobre PostgreSQL — **22 testes, 53 asserts** — no banco de teste `nando_lz_testing` (via `RefreshDatabase`):
 
 ```bash
-php artisan test        # ou ./vendor/bin/pest
+php artisan test                              # Local (ou ./vendor/bin/pest)
+docker compose exec app php artisan test     # Docker — isolado, seguro
 ```
 
-Valida: a aplicação sobe; a rota inicial responde; login de cada painel; painéis exigem autenticação; usuário autenticado acessa cada painel e vê o build no rodapé; logout não é GET (405); `POST /logout` encerra a sessão e regenera o CSRF; `superadmin:create` cria/recusa-trivial/bloqueia-duplicidade; migrations em banco limpo.
+Valida: a aplicação sobe; a rota inicial responde; login de cada painel; **autenticação por credenciais válidas e rejeição de inválidas na página de login do Filament** (`Livewire::test` + `fillForm`); painéis exigem autenticação; usuário autenticado acessa cada painel e vê o build no rodapé; logout não é GET (405); `POST /logout` encerra a sessão e regenera o CSRF; `superadmin:create` cria/recusa-trivial/bloqueia-duplicidade — o teste de senha usa `password123`, que passa na regra fraca de `local` mas falha na regra forte, distinguindo as duas de verdade; migrations em banco limpo.
 
 ---
 
 ## Deploy na VPS
 
-O modo Docker é o caminho mais direto e reproduzível para uma VPS.
+O modo Docker é o caminho mais direto e reproduzível para uma VPS. Os serviços `app` e `db` usam `restart: unless-stopped` — a aplicação sobrevive a reboots da VPS.
+
+```mermaid
+sequenceDiagram
+    actor Op as Operador
+    participant Host as VPS
+    participant App as container app
+    participant DB as container db
+    Op->>Host: git clone + cp .env.example .env
+    Op->>Host: ajusta o .env de produção
+    Op->>Host: docker compose up -d --build
+    Host->>DB: sobe postgres 16 e roda pg-init.sql
+    Host->>App: sobe o app via entrypoint
+    App->>App: instala deps, gera chave, builda assets
+    App->>DB: aguarda healthcheck e roda migrations
+    App-->>Op: HTTP na porta APP_PORT
+    Op->>App: php artisan superadmin:create
+    Op->>Host: reverse proxy com TLS na frente
+```
 
 ```bash
 git clone https://github.com/nandinhos/nando-lz.git
@@ -220,13 +270,19 @@ docker compose up -d --build
 docker compose exec app php artisan superadmin:create   # senha forte obrigatória fora de local
 ```
 
-O `entrypoint` do container faz o bootstrap sozinho (instala dependências, gera a chave se faltar, espera o banco, migra e sobe o servidor). A aplicação escuta na porta `APP_PORT` (alta por padrão); coloque um **reverse proxy** (Nginx/Caddy/Traefik) na frente para TLS e domínio.
+O `entrypoint` do container faz o bootstrap sozinho (instala dependências, gera a chave se faltar, espera o banco, migra e sobe o servidor) — e retoma corretamente uma instalação interrompida, pois os marcadores de progresso são **arquivos finais** (`vendor/autoload.php`, `node_modules/.package-lock.json`, `public/build/manifest.json`), não diretórios. A aplicação escuta na porta `APP_PORT` (alta por padrão); coloque um **reverse proxy** (Nginx/Caddy/Traefik) na frente para TLS e domínio.
+
+> [!IMPORTANT]
+> Em produção: `APP_ENV=production`, `APP_DEBUG=false` e **senha forte** em `DB_PASSWORD` e no superadmin. O `.env` real nunca é versionado.
 
 Notas de produção:
 
 - Defina `APP_BUILD` (ou gere `build.json`) para o rodapé da sidebar refletir a versão implantada.
 - `php artisan serve` é simples e funcional; para carga pesada, o upgrade path é php-fpm + Nginx ou Laravel Octane (ver [docs/DOCKER.md](docs/DOCKER.md)).
 - Prefira volumes gerenciados para o PostgreSQL (o compose já usa o volume `pgdata`).
+
+> [!CAUTION]
+> `docker compose down -v` **apaga o volume `pgdata` — todo o banco de dados**, incluindo o de teste. Use `docker compose down` (sem `-v`) para parar sem destruir dados.
 
 Detalhes completos em [docs/DOCKER.md](docs/DOCKER.md) e [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
@@ -236,21 +292,34 @@ Detalhes completos em [docs/DOCKER.md](docs/DOCKER.md) e [docs/INSTALLATION.md](
 
 Manutenção em **três camadas** (nenhuma faz merge sem CI verde):
 
+```mermaid
+flowchart TD
+    RV[Camada 1 - Renovate - sábado] -->|PR de patch-minor só no lock| CI
+    AG[Camada 2 - Agente de IA - segunda] --> GT[Gates do §7.3]
+    GT --> PR[PR classificado - AUTO ou REVIEW]
+    GT -->|incompatibilidade upstream| ISS[Issue rastreadora - BLOCKED]
+    PR --> CI[Camada 3 - CI - gate universal]
+    CI -->|verde| MH[Merge humano]
+    MH --> MAIN[main protegida]
+    MAIN --> REL[Release SemVer manual]
+```
+
 | Camada | Responsável | Papel |
 |--------|-------------|-------|
-| 1 — Renovate | `renovate.json` | PRs de **patch/minor** (só o lock, preserva constraints); majors ignorados |
-| 2 — Agente de IA | `auto-update.yml` | Ciclo semanal: resolve, aplica, valida, **abre PR** — decide e documenta, **nunca faz merge** |
+| 1 — Renovate | `renovate.json` | PRs de **patch/minor** aos sábados (só o lock, preserva constraints); majors de composer/npm ignorados |
+| 2 — Agente de IA | `auto-update.yml` | Ciclo semanal (segunda): resolve, aplica, valida, **abre PR** — decide e documenta, **nunca faz merge** |
 | 3 — CI | `ci.yml` + branch protection | **Gate universal**: nada entra na `main` sem verde |
 
 As mudanças são classificadas em **AUTO** (patch/minor/lock — PR, merge automático só sob condições estritas), **REVIEW** (majors, troca de pacote, mudança estrutural — `needs-human-approval`) e **BLOCKED** (incompatibilidade upstream — sem PR, issue rastreadora). Cada ciclo gera um relatório em `docs/reports/auto-update/`. Detalhes em [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md).
 
-> O Renovate exige habilitar o app no repositório (GitHub). Sem isso, a Camada 1 fica inerte.
+> [!WARNING]
+> O Renovate exige **habilitar o app no repositório, no GitHub**. Sem isso, a Camada 1 fica inerte e nenhum PR é aberto.
 
 ---
 
 ## Versionamento e releases
 
-O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da stack. Todo merge na `main` com CI verde vira tag, então dá para clonar sempre um estado conhecido-bom. Rollback = revert do PR de manutenção + tag de correção. Ver [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md).
+O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da stack. Releases são **taggeadas manualmente** (`gh release create vX.Y.Z`) pelo mantenedor ou pelo agente ao fechar um conjunto relevante de mudanças — todo release aponta para um commit da `main` com **CI verde**, então dá para clonar sempre um estado conhecido-bom. Rollback = revert do PR de manutenção + tag de correção. Ver [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md).
 
 ---
 
@@ -266,6 +335,7 @@ O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da 
 | [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md) | Automação em 3 camadas, classes, gates |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problemas comuns |
 | [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md) | Contrato operacional do agente de manutenção |
+| [docs/images/README.md](docs/images/README.md) | Convenções para screenshots da documentação |
 | [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
 
 ---

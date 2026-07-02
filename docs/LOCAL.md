@@ -8,14 +8,32 @@ Instalação sem Docker: usa o PHP, Composer, Node e PostgreSQL da sua máquina.
 ./scripts/install-local.sh
 ```
 
+<p align="center">
+  <img src="images/login-ops.png" alt="Página de login do painel ops após a instalação" width="600">
+</p>
+
 ## Etapas do `install-local.sh`
 
-1. **check-requirements** (`scripts/check-requirements.sh`) — verifica PHP ≥ 8.3, `ext-intl`, Composer, Node 22, `psql` e permissões de escrita em `storage` e `bootstrap/cache`.
-   - Exit codes: `0` ok · `10` PHP · `11` ext-intl · `12` Composer · `13` Node · `14` psql · `15` permissões.
+1. **check-requirements** (`scripts/check-requirements.sh`) — verifica a **versão do PHP** (≥ 8.3.0), a extensão `ext-intl`, a **presença** de Composer, Node e `psql` (sem checar a versão destes) e as permissões de escrita em `storage` e `bootstrap/cache`.
 2. `composer install`
 3. `npm install`
 4. **bootstrap** (`scripts/bootstrap-app.sh`)
 5. Oferece **criar o superadmin**.
+
+<details>
+<summary><strong>Exit codes do <code>check-requirements.sh</code></strong></summary>
+
+| Código | Significado |
+|--------|-------------|
+| `0` | Tudo ok |
+| `10` | PHP ausente ou versão < 8.3.0 |
+| `11` | Extensão `ext-intl` ausente |
+| `12` | Composer não encontrado |
+| `13` | Node não encontrado |
+| `14` | Cliente PostgreSQL (`psql`) não encontrado |
+| `15` | Sem permissão de escrita em `storage`/`bootstrap/cache` |
+
+</details>
 
 ## Bootstrap (`bootstrap-app.sh [--no-build]`)
 
@@ -50,9 +68,10 @@ php artisan superadmin:create
 
 - Só roda enquanto **não existir nenhum usuário** (os demais são criados pelo painel).
 - Interativo por padrão. Os argumentos `--name --email --password` só são aceitos em ambiente `local`/`dev`.
-- Em `local`: senha mínima de 8 caracteres.
-- Fora de `local`: senha forte obrigatória (mín. 12 caracteres, maiúsculas + minúsculas, números e símbolos) — senhas triviais são recusadas.
-- Cria o usuário com `email_verified_at` preenchido e acesso ao painel **ops**.
+- Cria o usuário com `email_verified_at` **atribuído explicitamente** (o campo fica fora do `$fillable` por design) e acesso ao painel **ops**.
+
+> [!IMPORTANT]
+> Em `local`: senha mínima de 8 caracteres. **Fora de `local`**: senha forte obrigatória — mínimo 12 caracteres, maiúsculas + minúsculas, números e símbolos; senhas triviais são recusadas.
 
 ## Rodar a aplicação
 
@@ -67,10 +86,11 @@ Painéis: `/ops`, `/admin` (default), `/support`.
 
 ```bash
 php artisan migrate            # aplica migrations
-php artisan test               # roda a suíte Pest
+php artisan test               # roda a suíte Pest (22 testes, banco nando_lz_testing)
 ./vendor/bin/pest              # idem
 ./scripts/test-app.sh [args]   # roda o Pest repassando argumentos
 ./scripts/reset-app.sh         # DESTRUTIVO: migrate:fresh + limpa caches (pede confirmação)
 ```
 
-`reset-app.sh` aceita `--force` (ou `FORCE=1`) para pular a confirmação. Use com cuidado — apaga os dados.
+> [!CAUTION]
+> `reset-app.sh` **apaga todos os dados do banco** (`migrate:fresh`). Aceita `--force` (ou `FORCE=1`) para pular a confirmação — use com cuidado, principalmente em automações.

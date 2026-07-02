@@ -36,7 +36,8 @@ class Build
         $file = base_path('build.json');
         if (is_file($file)) {
             $json = json_decode((string) file_get_contents($file), true);
-            if (is_array($json) && ! empty($json['build'])) {
+            // Só escalares: um array/objeto em 'build' derrubaria os painéis no cast.
+            if (is_array($json) && isset($json['build']) && is_scalar($json['build']) && $json['build'] !== '') {
                 return (string) $json['build'];
             }
         }

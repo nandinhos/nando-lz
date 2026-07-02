@@ -3,14 +3,18 @@
 # entrypoint do container app — bootstrap idempotente (PRD §5.4/§13).
 # Torna `docker compose up -d` autossuficiente: instala deps se faltarem,
 # prepara .env/chave, espera o banco, migra e sobe o servidor.
+#
+# Os marcadores testam ARQUIVOS finais (não diretórios): uma instalação
+# interrompida deixa o diretório pela metade, mas não o arquivo-marcador,
+# então a reexecução retoma do ponto certo.
 set -e
 cd /var/www/html
 
-[ -d vendor ] || composer install --no-interaction --prefer-dist
-[ -d node_modules ] || npm install
+[ -f vendor/autoload.php ] || composer install --no-interaction --prefer-dist
+[ -f node_modules/.package-lock.json ] || npm install
 [ -f .env ] || cp .env.example .env
 grep -qE '^APP_KEY=.+' .env || php artisan key:generate --force
-[ -d public/build ] || npm run build
+[ -f public/build/manifest.json ] || npm run build
 
 # Espera o banco ficar pronto (migrate falha silenciosamente até conectar).
 i=0

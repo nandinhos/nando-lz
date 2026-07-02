@@ -22,7 +22,8 @@ cd "$ROOT"
 PHP_BIN="${PHP_BIN:-php}"
 command -v "$PHP_BIN" >/dev/null 2>&1 || { echo "PHP indisponível (defina PHP_BIN)" >&2; exit 2; }
 
-fetch() { curl -fsSL "https://repo.packagist.org/p2/$1.json" 2>/dev/null || { echo "falha ao consultar Packagist: $1" >&2; exit 1; }; }
+# Timeouts explícitos: sem eles, um ciclo de automação pode travar indefinidamente.
+fetch() { curl -fsSL --connect-timeout 10 --max-time 60 "https://repo.packagist.org/p2/$1.json" 2>/dev/null || { echo "falha ao consultar Packagist: $1" >&2; exit 1; }; }
 
 { fetch "filament/filament"; echo "@@@"; fetch "laravel/framework"; } \
   | "$PHP_BIN" -r '

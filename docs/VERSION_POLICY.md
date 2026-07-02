@@ -22,9 +22,13 @@ O nando-lz tem **versionamento semântico próprio** (ex.: `v1.0.0`), **independ
 
 ## Releases e tags
 
-- Todo merge na `main` **com CI verde** gera uma **tag**.
+- Releases SemVer são **taggeadas manualmente** (`gh release create vX.Y.Z`) pelo mantenedor ou pelo agente, ao fechar um **conjunto relevante de mudanças** — não há mecanismo automático de tag por merge.
+- **Todo release aponta para um commit da `main` com CI verde** (a branch protection garante que nada entra na `main` sem verde).
 - Usuários clonam sempre um **estado conhecido-bom** (a tag mais recente ou a `main` verde).
 - O identificador de build no rodapé da sidebar **confirma visualmente** qual versão está implantada (ver §5.6 em [STACK.md](STACK.md)).
+
+> [!NOTE]
+> Merges de manutenção (patch/minor de lock) podem se acumular entre releases — a tag marca um estado revisado e nomeado, não cada merge individual.
 
 ## Rollback (§11)
 
