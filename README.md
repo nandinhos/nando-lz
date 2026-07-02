@@ -16,7 +16,7 @@
 
 Starter kit técnico **público** e *evergreen* para novos projetos **Laravel + Filament**: limpo, genérico, reproduzível e **permanentemente atualizado por automação**. Clone, rode um único script e tenha, em minutos, uma aplicação funcional na última versão estável e mutuamente compatível de toda a stack.
 
-> **É uma fundação técnica, não um produto.** Não há SaaS, landing page, checkout, pagamento, convite, multitenancy nem qualquer regra de negócio. Só estrutura conhecida-boa para você construir por cima.
+> **É uma fundação técnica, não um produto.** A landing do starter existe apenas para divulgar e monitorar a base técnica; não há SaaS, checkout, pagamento, convite, multitenancy nem qualquer regra de negócio. Só estrutura conhecida-boa para você construir por cima.
 
 ---
 
@@ -110,11 +110,12 @@ Clonou para começar algo seu? O `install.sh` oferece o **wizard de personaliza�
 php artisan app:setup
 ```
 
-Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco**, a **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. Ele também **desanexa a automação de manutenção** (que é do mantenedor do `nando-lz`), deixando só o CI para os seus testes.
+Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco**, se já existe **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. Se você ainda não tiver repositório remoto, pode continuar e definir o `APP_GITHUB_URL` depois. Ele também **desanexa a automação do starter** silenciosamente, deixando só o CI para os seus testes.
 
 - **Preview antes de aplicar:** `php artisan app:setup --preview` mostra exatamente o que mudaria, sem tocar em nada.
 - **Reversível:** por padrão as mudanças ficam no working tree — desfaça tudo com `git restore .`. O reset do histórico é opt-in e avisado.
 - **Porta sem conflito:** detecta o que está ativo (banco, sistema, outros serviços) e sugere uma **porta alta livre** para o `APP_PORT`.
+- **Welcome operacional:** depois do rebrand, a rota `/` deixa de ser a landing do starter e passa a mostrar uma página inicial do projeto, com links para `/ops`, `/admin` e `/support`.
 
 Detalhes em [docs/MAINTAINER.md](docs/MAINTAINER.md).
 
@@ -363,7 +364,7 @@ O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da 
 
 ## Restrições do projeto
 
-Este repositório **não** contém regra de negócio e não deve virar produto. Em resumo: nada de SaaS/landing/checkout/pagamento/convite, nada de multitenancy, nada de pacote sem justificativa registrada, nada de versão instável sem autorização em issue, `.env` real nunca versionado, sem logout via GET, e **nenhum merge na `main` sem CI verde**. A lista completa e o contrato do agente estão em [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md).
+Este repositório **não** contém regra de negócio e não deve virar produto. Em resumo: nada de SaaS/checkout/pagamento/convite, nada de multitenancy, nada de pacote sem justificativa registrada, nada de versão instável sem autorização em issue, `.env` real nunca versionado, sem logout via GET, e **nenhum merge na `main` sem CI verde**. A lista completa e o contrato do agente estão em [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md).
 
 ---
 

@@ -139,7 +139,7 @@
     $last = $stack['lastUpdate'];
     $name = $stack['name'];
     $githubUrl = $stack['githubUrl'];
-    $cloneCmd = 'git clone '.$githubUrl.'.git';
+    $cloneCmd = $githubUrl ? 'git clone '.$githubUrl.'.git' : 'git remote add origin <url-do-repositorio>';
 @endphp
 
 <div class="fx">
@@ -167,7 +167,9 @@
         <svg class="only-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/></svg>
         <svg class="only-light" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.7 6.7 0 0 0 9.8 9.8z"/></svg>
       </button>
-      <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="gh-btn">GitHub <span>↗</span></a>
+      @if ($githubUrl)
+        <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="gh-btn">GitHub <span>↗</span></a>
+      @endif
     </div>
   </div>
 </header>
@@ -181,7 +183,9 @@
       <p class="hero-sub" data-i18n="heroSub">Starter limpo e reproduzível com três painéis Filament, autenticação segura, testes Pest e manutenção automatizada — pule o boilerplate e comece a construir de verdade.</p>
       <div class="cta-row">
         <a href="#install" class="btn-primary" data-i18n="ctaPrimary">Começar agora</a>
-        <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="btn-ghost" data-i18n="ctaSecondary">Ver no GitHub</a>
+        @if ($githubUrl)
+          <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="btn-ghost" data-i18n="ctaSecondary">Ver no GitHub</a>
+        @endif
       </div>
       <div class="hero-bullets">
         <span>◇ MIT License</span><span>◇ PHP {{ $v['PHP'] ? preg_replace('/^(\d+\.\d+).*/', '$1', $v['PHP']) : '8.3' }}+</span><span>◇ Evergreen</span>
@@ -209,7 +213,12 @@
               @else
                 <span class="ok">✓</span>
               @endif
-              {{ $last['date'] }} — <a href="{{ $githubUrl }}/blob/main/{{ $last['path'] }}" target="_blank" rel="noopener" data-i18n="monitorReport">relatório do ciclo</a>
+              {{ $last['date'] }} —
+              @if ($githubUrl)
+                <a href="{{ $githubUrl }}/blob/main/{{ $last['path'] }}" target="_blank" rel="noopener" data-i18n="monitorReport">relatório do ciclo</a>
+              @else
+                <span data-i18n="monitorReport">relatório do ciclo</span>
+              @endif
             </div>
           @else
             <div class="dim" data-i18n="monitorNone">nenhum ciclo registrado ainda</div>
@@ -300,9 +309,11 @@
           <code><span class="p">$</span> <span id="finalCmd">{{ $cloneCmd }}</span></code>
           <button type="button" class="btn-copy" data-copy="#finalCmd" data-i18n="copy">Copiar</button>
         </div>
-        <div>
-          <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="gh-link"><span data-i18n="ctaSecondary">Ver no GitHub</span> ↗</a>
-        </div>
+        @if ($githubUrl)
+          <div>
+            <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="gh-link"><span data-i18n="ctaSecondary">Ver no GitHub</span> ↗</a>
+          </div>
+        @endif
       </div>
     </div>
   </section>

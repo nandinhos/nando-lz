@@ -16,12 +16,14 @@ use Illuminate\Support\Facades\DB;
  */
 class Stack
 {
-    /** @return array{name: string, githubUrl: string, versions: array<string, ?string>, release: ?string, build: string, lastUpdate: ?array{date: string, ok: ?bool, path: string}} */
+    /** @return array{name: string, githubUrl: ?string, versions: array<string, ?string>, release: ?string, build: string, lastUpdate: ?array{date: string, ok: ?bool, path: string}} */
     public static function snapshot(): array
     {
+        $githubUrl = rtrim((string) config('app.github_url', 'https://github.com/nandinhos/nando-lz'), '/');
+
         return [
             'name' => (string) config('app.name', 'Laravel'),
-            'githubUrl' => rtrim((string) config('app.github_url', 'https://github.com/nandinhos/nando-lz'), '/'),
+            'githubUrl' => $githubUrl !== '' ? $githubUrl : null,
             'versions' => [
                 'Laravel' => static::locked('laravel/framework'),
                 'Filament' => static::locked('filament/filament'),
@@ -34,6 +36,11 @@ class Stack
             'build' => Build::id(),
             'lastUpdate' => static::lastUpdate(),
         ];
+    }
+
+    public static function isStarter(): bool
+    {
+        return (string) config('app.name', 'Laravel') === 'nando-lz';
     }
 
     protected static function locked(string $package): ?string

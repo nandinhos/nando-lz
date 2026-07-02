@@ -13,7 +13,6 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\note;
 use function Laravel\Prompts\outro;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
@@ -22,7 +21,7 @@ use function Laravel\Prompts\warning;
  * Wizard de personalização do starter (rebrand) para quem clona o nando-lz
  * para começar um projeto novo.
  *
- * - Renomeia identidade: pacote Composer, APP_NAME, banco de dados, URL do repo,
+ * - Renomeia identidade: pacote Composer, APP_NAME, banco de dados, URL do repo
  *   porta pública e todas as referências textuais ao starter.
  * - Sugere uma porta ALTA livre (detecta o que está ativo) para não conflitar.
  * - Separa os papéis: a automação de manutenção é do MANTENEDOR do nando-lz;
@@ -35,15 +34,14 @@ use function Laravel\Prompts\warning;
  */
 #[Signature('app:setup
     {--name= : Nome da aplicação (humano)}
-    {--package= : Pacote Composer no formato vendor/nome}
+    {--package= : Pacote Composer no formato autor/nome}
     {--db= : Nome do banco de dados}
-    {--url= : URL do repositório (GitHub)}
+    {--url= : URL do repositório (http/https); use vazio para definir depois}
     {--port= : Porta pública (Docker)}
-    {--maintenance= : detach | renovate | maintainer}
     {--reset-git : Resetar o histórico git (irreversível)}
     {--preview : Mostrar o plano sem alterar nada}
     {--force : Ignorar a guarda de "já personalizado"}')]
-#[Description('Personaliza o starter (rebrand), sugere porta livre e desanexa a automação do mantenedor.')]
+#[Description('Personaliza o starter (rebrand), sugere porta livre e desanexa a automação do starter.')]
 class SetupProject extends Command
 {
     private const STARTER_PACKAGE = 'nandinhos/nando-lz';
@@ -61,22 +59,6 @@ class SetupProject extends Command
             return self::SUCCESS;
         }
 
-        $maintenance = $this->option('maintenance') ?: ($interactive ? select(
-            label: 'Qual o papel deste checkout?',
-            options: [
-                'detach' => 'Projeto novo — desanexar a automação do starter (só CI)',
-                'renovate' => 'Projeto novo — manter Renovate + CI (deps do meu projeto)',
-                'maintainer' => 'Sou mantenedor do nando-lz — não mexer em nada',
-            ],
-            default: 'detach',
-        ) : 'detach');
-
-        if ($maintenance === 'maintainer') {
-            outro('Modo mantenedor: nada foi renomeado nem removido.');
-
-            return self::SUCCESS;
-        }
-
         // Identidade (opção da CLI vence; senão prompt; senão default).
         $appName = $this->option('name') ?: ($interactive
             ? text('Nome da aplicação', placeholder: 'Acme CRM', required: true)
@@ -87,16 +69,30 @@ class SetupProject extends Command
             ? text('Banco de dados', default: str_replace('-', '_', $slug), validate: fn ($v) => preg_match('/^[a-z_][a-z0-9_]*$/', $v) ? null : 'Use apenas letras minúsculas, números e _ (começando por letra ou _).')
             : str_replace('-', '_', $slug));
 
+        $packageDefault = $slug.'/'.$slug;
         $package = $this->option('package') ?: ($interactive
-            ? text('Pacote Composer (vendor/nome)', default: 'vendor/'.$slug, validate: fn ($v) => preg_match('#^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9]([_.-]?[a-z0-9]+)*$#', $v) ? null : 'Formato inválido — use vendor/nome em minúsculas.')
-            : 'vendor/'.$slug);
+            ? text(
+                'Pacote Composer (vendor/nome)',
+                default: $packageDefault,
+                validate: fn ($v) => preg_match('#^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9]([_.-]?[a-z0-9]+)*$#', $v) ? null : 'Formato inválido — use vendor/nome em minúsculas.',
+                hint: '"vendor" é autor/organização, não a pasta vendor/.'
+            )
+            : $packageDefault);
 
         $vendor = explode('/', $package)[0];
 
-        $url = $this->option('url') ?: ($interactive
-            ? text('URL do repositório', default: 'https://github.com/'.$package, validate: fn ($v) => str_starts_with($v, 'http') ? null : 'Informe uma URL http(s) válida.')
+        $urlOption = $this->option('url');
+        $url = is_string($urlOption) ? $urlOption : ($interactive
+            ? (confirm('Já existe repositório Git remoto?', default: false)
+                ? text('URL do repositório', default: 'https://github.com/'.$package, validate: fn ($v) => str_starts_with($v, 'http') ? null : 'Informe uma URL http(s) válida.')
+                : '')
             : 'https://github.com/'.$package);
         $url = rtrim($url, '/');
+        if ($url !== '' && ! str_starts_with($url, 'http')) {
+            $this->error('Informe uma URL http(s) válida ou deixe --url vazio para definir depois.');
+
+            return self::FAILURE;
+        }
 
         // Porta ALTA livre — detecta o que está ativo (banco, sistema, serviços).
         $suggested = Ports::suggest($this->currentPort()) ?? $this->currentPort();
@@ -115,8 +111,9 @@ class SetupProject extends Command
         ));
 
         // Precedência resolvida pelo strtr (chaves mais longas primeiro, sem reprocessar).
+        $repoReplacement = $url !== '' ? $url : 'https://github.com/'.$package;
         $tokens = [
-            'https://github.com/nandinhos/nando-lz' => $url,
+            'https://github.com/nandinhos/nando-lz' => $repoReplacement,
             'nandinhos/nando-lz' => $package,
             'nando_lz_testing' => $db.'_testing',
             'nando_lz' => $db,
@@ -125,7 +122,7 @@ class SetupProject extends Command
         ];
 
         $changed = $this->processFiles($tokens, apply: false);
-        $willRemove = $this->maintenancePaths($maintenance);
+        $willRemove = $this->maintenancePaths();
         $existingRemovals = array_values(array_filter($willRemove, fn ($p) => is_file(base_path($p))));
 
         // ---- Preview do plano ----
@@ -133,14 +130,14 @@ class SetupProject extends Command
             ['Nome', $appName],
             ['Pacote', $package],
             ['Banco', $db],
-            ['Repositório', $url],
+            ['Repositório', $url !== '' ? $url : 'Ainda não informado'],
             ['Porta', (string) $port],
-            ['Manutenção', $maintenance === 'renovate' ? 'Renovate + CI' : 'somente CI'],
+            ['Manutenção', 'somente CI'],
             ['Reset git', $resetGit ? 'sim (irreversível)' : 'não (reversível via git)'],
         ]);
         note(count($changed).' arquivo(s) serão reescritos'.($changed ? ":\n  ".implode("\n  ", array_slice($changed, 0, 40)).(count($changed) > 40 ? "\n  …" : '') : '.'));
         if ($existingRemovals) {
-            note(count($existingRemovals).' arquivo(s) da automação do mantenedor serão removidos:'."\n  ".implode("\n  ", $existingRemovals));
+            note(count($existingRemovals).' arquivo(s) da automação do starter serão removidos:'."\n  ".implode("\n  ", $existingRemovals));
         }
 
         if ($preview) {
@@ -158,6 +155,7 @@ class SetupProject extends Command
         // ---- Aplicação ----
         $this->processFiles($tokens, apply: true);
         $this->fixEnvLine('APP_NAME', str_contains($appName, ' ') ? '"'.$appName.'"' : $appName);
+        $this->fixEnvLine('APP_GITHUB_URL', $url);
         $this->fixEnvLine('APP_PORT', (string) $port);
         $removed = $this->removeMaintenance($existingRemovals);
 
@@ -167,7 +165,7 @@ class SetupProject extends Command
             exec('cd '.escapeshellarg(base_path()).' && composer update --lock --no-interaction 2>/dev/null');
         }
 
-        note('Reescritos: '.count($changed).' arquivos.'.($removed ? " Removidos: {$removed} da automação do mantenedor." : ''));
+        note('Reescritos: '.count($changed).' arquivos.'.($removed ? " Removidos: {$removed} da automação do starter." : ''));
 
         if ($resetGit) {
             $this->resetGit($appName);
@@ -271,20 +269,16 @@ class SetupProject extends Command
         }
     }
 
-    /** Pontos de entrada da automação do mantenedor. */
-    private function maintenancePaths(string $mode): array
+    /** Pontos de entrada da automação do starter. */
+    private function maintenancePaths(): array
     {
-        $paths = [
+        return [
             '.github/workflows/auto-update.yml',
             '.github/workflows/compat-watch.yml',
             'scripts/resolve-stack.sh',
             'scripts/update-stack.sh',
+            'renovate.json',
         ];
-        if ($mode === 'detach') {
-            $paths[] = 'renovate.json';
-        }
-
-        return $paths;
     }
 
     private function removeMaintenance(array $existing): int

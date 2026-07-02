@@ -36,6 +36,29 @@ it('mostra na welcome as versões reais do lock e o monitor de atualização', f
     }
 });
 
+it('welcome não renderiza links quebrados quando repositório remoto não foi definido', function () {
+    config(['app.github_url' => '']);
+
+    get('/')
+        ->assertOk()
+        ->assertDontSee('href=""', false)
+        ->assertDontSee('git clone .git')
+        ->assertSee('git remote add origin');
+});
+
+it('mostra uma welcome operacional quando o projeto está personalizado', function () {
+    config(['app.name' => 'Topizeira']);
+
+    get('/')
+        ->assertOk()
+        ->assertSee('Topizeira')
+        ->assertSee('/ops')
+        ->assertSee('/admin')
+        ->assertSee('/support')
+        ->assertSee('php artisan superadmin:create')
+        ->assertDontSee('A base premium para seus próximos projetos Laravel');
+});
+
 it('mostra a página de login de cada painel', function (string $panel) {
     get("/{$panel}/login")->assertOk();
 })->with($panels);
@@ -135,4 +158,18 @@ it('roda as migrations em banco limpo (tabela users existe)', function () {
 it('README bate exato com a stack instalada (guarda de drift)', function () {
     // Falha qualquer PR que bump de versão sem sincronizar o README.
     artisan('stack:sync', ['--check' => true])->assertSuccessful();
+});
+
+it('app:setup permite continuar sem repositório remoto', function () {
+    artisan('app:setup', ['--preview' => true, '--force' => true])
+        ->expectsQuestion('Nome da aplicação', 'Topizeira')
+        ->expectsQuestion('Banco de dados', 'topizeira_db')
+        ->expectsQuestion('Pacote Composer (vendor/nome)', 'topizeira/topizeira')
+        ->expectsConfirmation('Já existe repositório Git remoto?', 'no')
+        ->expectsQuestion('Porta pública (Docker)', '19000')
+        ->expectsConfirmation('Resetar o histórico git?', 'no')
+        ->expectsOutputToContain('somente CI')
+        ->doesntExpectOutputToContain('Renovate')
+        ->doesntExpectOutputToContain('mantenedor')
+        ->assertSuccessful();
 });

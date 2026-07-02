@@ -10,7 +10,7 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 4. **Não instalar pacotes sem justificativa registrada** (no relatório do ciclo ou em issue).
 5. **Preservar a estrutura limpa** do starter — não adicionar scaffolding especulativo.
 6. **Não criar regra de negócio.** O starter não tem domínio.
-7. **Não transformar o starter em produto** (sem SaaS, landing, checkout, pagamento, convite, multitenancy).
+7. **Não transformar o starter em produto** (sem SaaS, checkout, pagamento, convite, multitenancy; a landing é só vitrine técnica do starter).
 8. **Manter os 3 painéis funcionando** (`ops`, `admin`, `support`) — login, perfil, 2FA opcional e build id no rodapé.
 9. **Rodar a suíte de testes após qualquer alteração** (`php artisan test` / `./vendor/bin/pest` — 22 testes, 53 asserts).
 10. **Registrar decisões no relatório do ciclo** em `docs/reports/auto-update/YYYY-MM-DD.md`.
