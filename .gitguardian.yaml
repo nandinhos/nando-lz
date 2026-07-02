@@ -10,3 +10,9 @@ secret:
   ignored-matches:
     - name: "PostgreSQL dev default (placeholder, não é segredo real)"
       match: postgres
+    # Fixtures de teste em tests/Feature/SanityTest.php — valores forjados
+    # apenas para satisfazer a validação de senha forte num banco efêmero.
+    - name: "Senha-fixture dos testes do superadmin:create"
+      match: Senha-Fake-De-Teste-123!
+    - name: "Senha-fixture antiga (histórico v1.0.0)"
+      match: Str0ngPass!2026
