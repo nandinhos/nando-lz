@@ -56,3 +56,7 @@ Detalhes das classes de mudança, camadas de automação e critérios de merge a
 - `scripts/install.sh` / `install-local.sh` / `install-docker.sh` / `check-requirements.sh` — instalação.
 
 Detalhes de cada script: `INSTALLATION.md`, `LOCAL.md`, `DOCKER.md`.
+
+## Mantenedor × usuário
+
+A automação de manutenção (`auto-update.yml`, `compat-watch.yml`, `renovate.json`, `resolve-stack.sh`, `update-stack.sh`) é do **mantenedor** do `nando-lz` — serve para manter o *starter* evergreen. Quem clona para um projeto novo roda `php artisan app:setup` (wizard de rebrand), que renomeia a identidade e **desanexa** essa automação, preservando o CI. Ver [MAINTAINER.md](MAINTAINER.md).

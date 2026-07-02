@@ -38,6 +38,17 @@ if [ "$UP" -ne 1 ]; then
   exit 22
 fi
 
+# Personalização (rebrand) dentro do container — só num clone não personalizado.
+if [ -t 0 ] && grep -q '"name": "nandinhos/nando-lz"' composer.json; then
+  read -r -p "Personalizar este projeto agora (nome, pacote, banco)? [S/n] " ans
+  case "${ans:-s}" in
+    [nN]) echo "Pulei — rode depois: docker compose exec app php artisan app:setup" ;;
+    *) docker compose exec app php artisan app:setup || true
+       echo "→ recriando containers para aplicar o novo banco…"
+       docker compose down -v && docker compose up -d ;;
+  esac
+fi
+
 cat <<EOF
 
 Pronto. App em http://localhost:$PORT  ·  Painéis: /ops /admin /support

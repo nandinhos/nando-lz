@@ -18,6 +18,9 @@ return [
     // Identificador de build exibido no rodapé da sidebar (§5.6). Ver App\Support\Build.
     'build' => env('APP_BUILD'),
 
+    // URL do repositório, usada na landing (welcome). Reescrita pelo wizard app:setup.
+    'github_url' => env('APP_GITHUB_URL', 'https://github.com/nandinhos/nando-lz'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

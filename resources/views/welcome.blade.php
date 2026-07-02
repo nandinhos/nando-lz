@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>nando-lz — Laravel + Filament Evergreen Starter</title>
+<title>{{ $stack['name'] }} — Laravel + Filament</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -137,8 +137,9 @@
 @php
     $v = $stack['versions'];
     $last = $stack['lastUpdate'];
-    $githubUrl = 'https://github.com/nandinhos/nando-lz';
-    $cloneCmd = 'git clone https://github.com/nandinhos/nando-lz.git';
+    $name = $stack['name'];
+    $githubUrl = $stack['githubUrl'];
+    $cloneCmd = 'git clone '.$githubUrl.'.git';
 @endphp
 
 <div class="fx">
@@ -150,7 +151,7 @@
   <div class="shell nav-row">
     <a href="#top" class="brand">
       <span class="brand-gem"></span>
-      <span class="brand-name display">nando-lz</span>
+      <span class="brand-name display">{{ $name }}</span>
     </a>
     <nav class="links">
       <a href="#features" data-i18n="navFeatures">Recursos</a>
@@ -194,7 +195,7 @@
           <span class="term-dot" style="background:#ff5f57"></span>
           <span class="term-dot" style="background:#febc2e"></span>
           <span class="term-dot" style="background:#28c840"></span>
-          <span class="term-title">monitor — nando-lz</span>
+          <span class="term-title">monitor — {{ $name }}</span>
         </div>
         <div class="term-body">
           <div><span class="p">$</span> resolve-stack.sh</div>
@@ -311,7 +312,7 @@
   <div class="shell foot-row">
     <div class="foot-brand">
       <span class="foot-gem"></span>
-      <span class="display" style="font-weight:700;font-size:16px">nando-lz</span>
+      <span class="display" style="font-weight:700;font-size:16px">{{ $name }}</span>
       <span class="foot-tag" data-i18n="footerTag">Starter Laravel + Filament, evergreen por automação.</span>
     </div>
     <span class="foot-rights" data-i18n="footerRights">Feito para a comunidade Laravel.</span>

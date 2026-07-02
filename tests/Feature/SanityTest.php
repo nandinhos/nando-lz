@@ -21,14 +21,19 @@ it('mostra na welcome as versões reais do lock e o monitor de atualização', f
     $locked = collect(array_merge($lock['packages'], $lock['packages-dev']))
         ->keyBy('name')->map(fn ($p) => ltrim($p['version'], 'v'));
 
-    get('/')
+    $response = get('/')
         ->assertOk()
         ->assertSee($locked['laravel/framework'])
         ->assertSee($locked['filament/filament'])
         ->assertSee($locked['livewire/livewire'])
-        ->assertSee(Build::id())
-        // monitor: o relatório mais recente de docs/reports/auto-update/
-        ->assertSee(basename((string) last(glob(base_path('docs/reports/auto-update/*.md'))), '.md'));
+        ->assertSee(Build::id());
+
+    // Monitor: só há relatório se a automação de manutenção estiver presente
+    // (o wizard app:setup pode tê-la desanexado num projeto de usuário).
+    $reports = glob(base_path('docs/reports/auto-update/*.md')) ?: [];
+    if ($reports !== []) {
+        $response->assertSee(basename((string) end($reports), '.md'));
+    }
 });
 
 it('mostra a página de login de cada painel', function (string $panel) {

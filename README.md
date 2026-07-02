@@ -100,6 +100,16 @@ No modo Docker a porta pública é **alta por padrão** (`18000`) para evitar co
 > [!NOTE]
 > No Docker, os testes rodam contra o banco dedicado `nando_lz_testing` (definido nos `<env>` do `phpunit.xml` e criado por `docker/pg-init.sql`) — o comando `docker compose exec app php artisan test` é seguro e nunca toca o banco de desenvolvimento. Ver [docs/DOCKER.md](docs/DOCKER.md).
 
+### Personalizar o projeto (rebrand)
+
+Clonou para começar algo seu? O `install.sh` oferece o **wizard de personalização**, ou rode direto:
+
+```bash
+php artisan app:setup
+```
+
+Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **pacote Composer**, o **banco** e a **URL do repositório**, e reescreve toda a identidade do projeto de uma vez. Ele também **desanexa a automação de manutenção** (que é do mantenedor do `nando-lz`), deixando só o CI para os seus testes. Detalhes em [docs/MAINTAINER.md](docs/MAINTAINER.md).
+
 ---
 
 ## Stack
@@ -335,6 +345,7 @@ O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da 
 | [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md) | Automação em 3 camadas, classes, gates |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problemas comuns |
 | [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md) | Contrato operacional do agente de manutenção |
+| [docs/MAINTAINER.md](docs/MAINTAINER.md) | Papéis mantenedor × usuário, wizard `app:setup`, automação |
 | [docs/images/README.md](docs/images/README.md) | Convenções para screenshots da documentação |
 | [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
 
