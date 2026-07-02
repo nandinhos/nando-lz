@@ -56,8 +56,10 @@ it('superadmin:create cria o primeiro usuário (interativo, senha forte)', funct
     artisan('superadmin:create')
         ->expectsQuestion('Nome', 'Nando')
         ->expectsQuestion('E-mail', 'root@nando-lz.test')
-        ->expectsQuestion('Senha', 'Str0ngPass!2026')
-        ->expectsQuestion('Confirme a senha', 'Str0ngPass!2026')
+        // Fixture de teste (não é segredo): precisa passar na regra forte
+        // (mín. 12, maiúsc./minúsc., números, símbolos) fora de `local`.
+        ->expectsQuestion('Senha', 'Senha-Fake-De-Teste-123!')
+        ->expectsQuestion('Confirme a senha', 'Senha-Fake-De-Teste-123!')
         ->assertSuccessful();
 
     expect(User::where('email', 'root@nando-lz.test')->exists())->toBeTrue();
