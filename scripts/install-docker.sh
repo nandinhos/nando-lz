@@ -69,16 +69,14 @@ fi
 URL="http://localhost:${PORT}/"
 LINK_TEXT="http://localhost:${PORT}/"
 
-# Mensagem final: hyperlink clicável via OSC 8 (terminais modernos
-# — iTerm2, GNOME Terminal, Windows Terminal, WezTerm, Kitty).
-# Em terminais sem suporte, as sequências OSC 8 são ignoradas e o
-# texto aparece como saída normal.
+# Hyperlink clicavel via OSC 8 (iTerm2, GNOME Terminal, Windows
+# Terminal, WezTerm, Kitty). Em terminais sem suporte, as
+# sequencias sao ignoradas e o texto aparece normal. Gerado
+# apenas com 'echo -e' (bash builtin) - sem printf com escapes
+# no formato, que causou 'unexpected EOF' em alguns shells.
+echo -e "\033]8;;${URL}\033\\\\${LINK_TEXT}\033]8;;\033\\\\"
+echo "Pronto. App no link acima  ·  Paineis: /ops  /admin  /support"
 echo
-printf '\033]8;;%s\033\\' "$URL"
-printf '%s' "$LINK_TEXT"
-printf '\033]8;;\033\\\n'
-echo "Pronto. App no link acima  ·  Painéis: /ops /admin /support"
-echo
-echo "Crie o primeiro admin e rode os testes:"
+echo "Proximos passos:"
 echo "  docker compose exec app php artisan superadmin:create"
 echo "  docker compose exec app php artisan test"
