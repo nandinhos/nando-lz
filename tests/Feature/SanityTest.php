@@ -173,3 +173,28 @@ it('app:setup permite continuar sem repositório remoto', function () {
         ->doesntExpectOutputToContain('mantenedor')
         ->assertSuccessful();
 });
+
+it('app:setup nao reescreve scripts/ do starter', function () {
+    // Guard: scripts de tooling (install-docker.sh, install.sh, bootstrap-app.sh,
+    // etc.) sao do starter, nao do projeto do usuario. Reescreve-los quebra
+    // sintaxe shell em alguns casos (strtr substitui tokens em aspas/comentarios
+    // de scripts bash, gerando EOF/quote mismatches). Devem ficar intactos.
+    artisan('app:setup', ['--preview' => true, '--force' => true])
+        ->expectsQuestion('Nome da aplicação', 'Topizeira')
+        ->expectsQuestion('Banco de dados', 'topizeira_db')
+        ->expectsConfirmation('Já existe repositório Git remoto?', 'no')
+        ->expectsQuestion('Porta pública (Docker)', '19000')
+        ->expectsConfirmation('Resetar o histórico git?', 'no')
+        ->assertSuccessful();
+
+    // Nenhum arquivo de scripts/ deve aparecer na lista de "serao reescritos".
+    $preview = \Illuminate\Support\Facades\Artisan::output();
+    expect($preview)
+        ->not->toContain('scripts/install-docker.sh')
+        ->not->toContain('scripts/install.sh')
+        ->not->toContain('scripts/install-local.sh')
+        ->not->toContain('scripts/bootstrap-app.sh')
+        ->not->toContain('scripts/check-requirements.sh')
+        ->not->toContain('scripts/reset-app.sh')
+        ->not->toContain('scripts/test-app.sh');
+});

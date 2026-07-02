@@ -215,6 +215,13 @@ class SetupProject extends Command
             ->notPath('app/Console/Commands/SetupProject.php')
             ->notPath('app/Support/Stack.php')
             ->notPath('config/app.php')
+            // Preserva os scripts de tooling do starter (install/bootstrap/check/
+            // reset/test). Eles continuam usando 'nandinhos/nando-lz' por design —
+            // é assim que detectam se o projeto já foi personalizado. Reescrevê-los
+            // quebra sintaxe shell (strtr substitui tokens que aparecem em aspas,
+            // comentários e mensagens) e polui o projeto do usuário final com
+            // arquivos do starter que ele não precisa.
+            ->exclude('scripts')
             ->ignoreDotFiles(false);
 
         $changed = [];
