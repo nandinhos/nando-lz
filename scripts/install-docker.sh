@@ -66,7 +66,13 @@ if [ -t 0 ] && grep -q '"name": "nandinhos/nando-lz"' composer.json; then
   esac
 fi
 
-printf '\nPronto. App em http://localhost:%s  ·  Painéis: /ops /admin /support\n\n' "$PORT"
+URL="http://localhost:${PORT}/"
+# Link clicável via OSC 8 (iTerm2/GNOME Terminal/Windows Terminal/WezTerm).
+# Em terminais sem suporte, o escape é ignorado e o texto puro aparece.
+LINK_TEXT="http://localhost:${PORT}/"
+printf '\n'
+printf '\033]8;;%s\033\\%s\033]8;;\033\\\n' "$URL" "$LINK_TEXT"
+printf 'Pronto. App no link acima  ·  Painéis: /ops /admin /support\n\n'
 printf 'Crie o primeiro admin e rode os testes:\n'
 printf '  docker compose exec app php artisan superadmin:create\n'
 printf '  docker compose exec app php artisan test\n'
