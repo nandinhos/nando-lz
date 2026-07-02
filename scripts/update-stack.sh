@@ -43,6 +43,8 @@ run "resolve-stack (§4.1)" ./scripts/resolve-stack.sh >/dev/null
 if [ "$DRY" -eq 0 ]; then
   run "composer update (patch/minor)" composer update --no-interaction --prefer-dist
   [ -f package-lock.json ] && run "npm update (lock)" npm update
+  # Docs sempre exatas: sincroniza os números do README com a stack instalada.
+  run "sincronizar README (stack:sync)" php artisan stack:sync
 fi
 
 # §7.3(4) composer validate --strict.

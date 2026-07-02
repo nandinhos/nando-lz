@@ -4,7 +4,16 @@ Todas as mudanças relevantes deste projeto são documentadas aqui.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/) próprio, independente das versões da stack.
 
-## [1.4.0] - 2026-07-02
+## [1.5.0] - 2026-07-02
+
+### Adicionado
+
+- **`php artisan stack:sync`**: mantém os badges e a tabela de stack do README **exatos** com a stack instalada, gerados de fonte única (`composer.lock` para Laravel/Filament/Livewire/Pest, `composer.json` para o PHP, `docker-compose.yml` para o PostgreSQL, `ci.yml` para o Node), entre marcadores `<!-- stack:… -->`.
+- **Guarda de drift no CI**: teste Pest roda `stack:sync --check` e falha se o README divergir da stack — nenhum bump de versão passa sem o README bater exato. O `update-stack.sh` roda `stack:sync` a cada ciclo. Suíte: **26 testes**.
+
+### Alterado
+
+- README com badges/tabela de stack agora sincronizados por comando (fim do drift de versões documentadas). Landing e monitor já eram exatos (leem do `composer.lock` em runtime).
 
 ### Adicionado
 
