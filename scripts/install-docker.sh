@@ -20,14 +20,23 @@ docker compose version >/dev/null 2>&1 || { echo "'docker compose' (v2) não enc
 echo "→ build e subida dos containers (o app se auto-bootstrapa)"
 docker compose up -d --build
 
-PORT="$(grep -E '^APP_PORT=' .env 2>/dev/null | cut -d= -f2)"
+# `|| true`: sem a linha APP_PORT no .env, o grep retorna 1 e o set -e mataria o script.
+PORT="$(grep -E '^APP_PORT=' .env 2>/dev/null | cut -d= -f2 || true)"
 PORT="${PORT:-18000}"
 
-echo "→ aguardando o app responder em http://localhost:$PORT …"
-for _ in $(seq 1 45); do
-  if curl -fsS "http://localhost:$PORT" >/dev/null 2>&1; then break; fi
+# Primeiro boot compila vendor+assets no container — dê tempo de sobra.
+echo "→ aguardando o app responder em http://localhost:$PORT (até 5 min no primeiro boot)…"
+UP=0
+for _ in $(seq 1 150); do
+  if curl -fsS "http://localhost:$PORT" >/dev/null 2>&1; then UP=1; break; fi
   sleep 2
 done
+
+if [ "$UP" -ne 1 ]; then
+  echo "✗ o app não respondeu em http://localhost:$PORT." >&2
+  echo "  Acompanhe o bootstrap com: docker compose logs -f app" >&2
+  exit 22
+fi
 
 cat <<EOF
 

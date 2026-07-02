@@ -2,6 +2,8 @@
 
 use App\Models\User;
 use App\Support\Build;
+use Filament\Auth\Pages\Login;
+use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\artisan;
@@ -62,11 +64,13 @@ it('superadmin:create cria o primeiro usuário (interativo, senha forte)', funct
 });
 
 it('superadmin:create recusa senha trivial fora de local', function () {
+    // 'password123' passa na regra de local (mín. 8) mas falha na regra forte
+    // (mín. 12 + maiúsculas + símbolos) — distingue as duas regras de verdade.
     artisan('superadmin:create')
         ->expectsQuestion('Nome', 'Nando')
         ->expectsQuestion('E-mail', 'root@nando-lz.test')
-        ->expectsQuestion('Senha', 'senha')
-        ->expectsQuestion('Confirme a senha', 'senha')
+        ->expectsQuestion('Senha', 'password123')
+        ->expectsQuestion('Confirme a senha', 'password123')
         ->assertFailed();
 
     expect(User::count())->toBe(0);
@@ -78,6 +82,28 @@ it('superadmin:create bloqueia duplicidade', function () {
     artisan('superadmin:create')->assertFailed();
 
     expect(User::count())->toBe(1);
+});
+
+it('autentica com credenciais válidas na página de login do Filament', function () {
+    $user = User::factory()->create(); // senha padrão da factory: "password"
+
+    Livewire::test(Login::class)
+        ->fillForm(['email' => $user->email, 'password' => 'password'])
+        ->call('authenticate');
+
+    expect(auth()->check())->toBeTrue()
+        ->and(auth()->id())->toBe($user->id);
+});
+
+it('rejeita credenciais inválidas na página de login do Filament', function () {
+    $user = User::factory()->create();
+
+    Livewire::test(Login::class)
+        ->fillForm(['email' => $user->email, 'password' => 'senha-errada'])
+        ->call('authenticate')
+        ->assertHasFormErrors(['email']);
+
+    expect(auth()->check())->toBeFalse();
 });
 
 it('roda as migrations em banco limpo (tabela users existe)', function () {

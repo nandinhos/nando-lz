@@ -12,7 +12,7 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 6. **Não criar regra de negócio.** O starter não tem domínio.
 7. **Não transformar o starter em produto** (sem SaaS, landing, checkout, pagamento, convite, multitenancy).
 8. **Manter os 3 painéis funcionando** (`ops`, `admin`, `support`) — login, perfil, 2FA opcional e build id no rodapé.
-9. **Rodar a suíte de testes após qualquer alteração** (`php artisan test` / `./vendor/bin/pest`).
+9. **Rodar a suíte de testes após qualquer alteração** (`php artisan test` / `./vendor/bin/pest` — 22 testes, 53 asserts).
 10. **Registrar decisões no relatório do ciclo** em `docs/reports/auto-update/YYYY-MM-DD.md`.
 11. **Jamais sobrescrever o `.env` real.** `bootstrap-app.sh` só cria `.env` se faltar; `.env` real nunca é versionado.
 12. **Manter paridade Local↔Docker.** O que funciona em Local funciona em Docker e vice-versa (ver allowlist do `serve` em `TROUBLESHOOTING.md`).
@@ -37,10 +37,19 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 
 Detalhes das classes de mudança, camadas de automação e critérios de merge automático: `AUTO_UPDATE_POLICY.md`.
 
+## Notas operacionais (invariantes recentes — não regredir)
+
+- **Docker sem `env_file:`.** O `.env` chega ao Laravel via bind-mount. Injetá-lo como ambiente real do container congela valores e faz os `<env>` do `phpunit.xml` serem ignorados — bug crítico real: `php artisan test` no container apagava o banco de dev. Nunca adicionar `env_file:` ao compose.
+- **Banco de teste no Docker.** `docker/pg-init.sql` cria `nando_lz_testing` na primeira inicialização do volume `pgdata`; `docker compose exec app php artisan test` é seguro e isolado.
+- **Container não-root.** O app roda como usuário `app` com UID configurável (`build.args.UID`, padrão 1000) — não reintroduzir root no container nem quebrar a editabilidade do bind-mount no host.
+- **PR do ciclo.** O `auto-update.yml` não abre PR se só o relatório mudou; usa `--force-with-lease` (re-run seguro no mesmo dia); cria-ou-atualiza o PR; e dispara `gh workflow run ci.yml --ref <branch>` após abrir (pushes com `GITHUB_TOKEN` não disparam workflows — sem isso o PR fica preso em "Expected").
+- **Renovate no sábado**, agente na segunda — não realinhar as agendas para o mesmo dia.
+- **`superadmin:create`** atribui `email_verified_at` explicitamente; o campo fica fora do `$fillable` por design.
+
 ## Scripts (ponteiros)
 
-- `scripts/resolve-stack.sh` — resolução de compatibilidade do §4.1; saída JSON.
-- `scripts/update-stack.sh [--dry-run]` — ponto de entrada do ciclo; roda os gates e gera o relatório. Nunca cria branch, commita ou faz push (isso é do workflow).
+- `scripts/resolve-stack.sh` — resolução de compatibilidade do §4.1; saída JSON; curl com timeouts explícitos.
+- `scripts/update-stack.sh [--dry-run]` — ponto de entrada do ciclo; roda os gates e gera o relatório **mesmo em falha** (usa `set -uo pipefail`, sem `-e`, de propósito). Nunca cria branch, commita ou faz push (isso é do workflow).
 - `scripts/bootstrap-app.sh [--no-build]` — bootstrap idempotente (`.env`, chave, migrations, build).
 - `scripts/reset-app.sh [--force]` — destrutivo (`migrate:fresh` + limpa caches).
 - `scripts/test-app.sh [args]` — roda o Pest.

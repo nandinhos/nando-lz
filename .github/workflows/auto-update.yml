@@ -11,6 +11,8 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  # `gh workflow run ci.yml` (dispatch do gate no PR do agente) exige actions:write.
+  actions: write
 
 jobs:
   update:
@@ -30,7 +32,7 @@ jobs:
           --health-interval=5s --health-timeout=5s --health-retries=10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -41,7 +43,7 @@ jobs:
           extensions: intl, pdo_pgsql
           coverage: none
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -71,8 +73,10 @@ jobs:
           BRANCH="maintenance/auto-update-$DATE"
           REPORT="docs/reports/auto-update/$DATE.md"
 
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "Nenhuma mudança neste ciclo."
+          # O relatório é gerado em TODO ciclo; sozinho ele não justifica PR.
+          # Só abre PR se algo além de docs/reports/ mudou.
+          if [ -z "$(git status --porcelain -- ':!docs/reports')" ]; then
+            echo "Só o relatório mudou — nada a atualizar neste ciclo."
             exit 0
           fi
 
@@ -85,15 +89,30 @@ jobs:
             LABELS="$LABELS,needs-human-approval"
           fi
 
+          # Labels podem não existir em forks/clones novos — bootstrap idempotente.
+          gh label create "auto-update"          --color 1d76db --description "PR do ciclo automático" --force
+          gh label create "needs-human-approval" --color d93f0b --description "Classe REVIEW — merge só humano (§7.2)" --force
+          gh label create "security"             --color ee0701 --description "Correção de segurança" --force
+
           git add -A
           git commit -m "chore(auto-update): ciclo $DATE"
-          git push -u origin "$BRANCH"
+          # --force-with-lease: re-run no mesmo dia sobrescreve a própria branch com segurança.
+          git push --force-with-lease -u origin "$BRANCH"
 
           [ -f "$REPORT" ] || echo "Ciclo $DATE — relatório não gerado." > "$REPORT"
-          gh pr create --base main --head "$BRANCH" \
-            --title "Auto-update $DATE" \
-            --body-file "$REPORT" \
-            --label "$LABELS"
+
+          # Cria o PR ou, se já existir (re-run do dia), só atualiza o corpo.
+          if ! gh pr create --base main --head "$BRANCH" \
+              --title "Auto-update $DATE" \
+              --body-file "$REPORT" \
+              --label "$LABELS"; then
+            gh pr edit "$BRANCH" --body-file "$REPORT"
+          fi
+
+          # Push/PR feitos com GITHUB_TOKEN não disparam workflows (regra do
+          # GitHub Actions) — dispara o gate universal explicitamente para o
+          # PR não ficar preso em "Expected" nos required checks.
+          gh workflow run ci.yml --ref "$BRANCH"
 
       - name: Abrir issue de falha se o ciclo quebrou (§9)
         if: steps.cycle.outcome != 'success'

@@ -16,7 +16,7 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -36,9 +36,12 @@ jobs:
           BLOCKED="$(echo "$JSON" | php -r 'echo json_decode(stream_get_contents(STDIN),true)["blocked_upstream"]?"1":"0";')"
           MAXSUP="$(echo "$JSON"  | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo $d["laravel"]["max_supported_major"] ?? "?";')"
           LATEST="$(echo "$JSON"  | php -r '$d=json_decode(stream_get_contents(STDIN),true); echo $d["laravel"]["latest_stable"];')"
-          NEXT=$(( ${LATEST%%.*} + 1 ))
+          # A major aguardada é a ÚLTIMA estável do Laravel (a que o Filament
+          # ainda não suporta) — não a próxima depois dela.
+          AWAITED="${LATEST%%.*}"
 
-          TITLE="compat: aguardando Filament x Laravel $NEXT"
+          gh label create "blocked-upstream" --color fbca04 --description "Incompatibilidade upstream (§4.2)" --force
+          TITLE="compat: aguardando Filament x Laravel $AWAITED"
           EXISTING="$(gh issue list --label blocked-upstream --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || true)"
 
           if [ "$BLOCKED" = "1" ]; then

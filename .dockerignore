@@ -1,0 +1,4 @@
+# O Dockerfile só copia docker/entrypoint.sh — o código chega por bind-mount.
+# Ignorar todo o resto derruba o contexto de build de ~200 MB para poucos KB.
+*
+!docker/

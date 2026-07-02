@@ -28,3 +28,4 @@ Thumbs.db
 
 # Build id gerado em tempo de build (§5.6)
 /build.json
+/.claude

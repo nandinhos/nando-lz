@@ -15,7 +15,7 @@
 set -uo pipefail   # sem -e: queremos coletar falhas e ainda gerar o relatório
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || exit 1
 
 DRY=0
 [ "${1:-}" = "--dry-run" ] && DRY=1

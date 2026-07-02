@@ -76,12 +76,14 @@ class CreateSuperAdmin extends Command
             return self::FAILURE;
         }
 
-        $user = User::create([
+        $user = new User([
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($password),
-            'email_verified_at' => now(),
         ]);
+        // Fora do fillable de propósito — atribuição explícita (mass assignment a descartaria).
+        $user->email_verified_at = now();
+        $user->save();
 
         $this->info("Superadmin criado: {$user->email} — acesse /ops para entrar.");
 
