@@ -58,7 +58,7 @@ Manter um projeto Laravel + Filament sempre atualizado é trabalhoso: as versõe
 - ✅ **Autenticação** oficial do Filament, **sem registro público**, com página de perfil e **2FA opcional** (opt-in).
 - ✅ **`POST /logout`** nativo (nunca GET) — encerra a sessão, invalida-a e regenera o token CSRF.
 - ✅ Comando **`superadmin:create`** para o primeiro administrador, com guarda de duplicidade e senha forte.
-- ✅ **Pest** com suíte de sanidade (**22 testes, 53 asserts**) sobre **PostgreSQL** — inclui login por credenciais válidas/inválidas na página do Filament.
+- ✅ **Pest** com suíte de sanidade (**30 testes, ~103 asserts**) sobre **PostgreSQL** — inclui login por credenciais válidas/inválidas na página do Filament.
 - ✅ **Dois modos de instalação idempotentes**: Local e Docker, ambos por um único script.
 - ✅ **Docker não-root**: o container roda como usuário `app` com UID do host — nada de arquivos root-owned no bind-mount.
 - ✅ **Banco de teste isolado no Docker** (`nando_lz_testing`, criado por `docker/pg-init.sql`) — `php artisan test` no container nunca toca o banco de dev.
@@ -110,12 +110,14 @@ Clonou para começar algo seu? O `install.sh` oferece o **wizard de personaliza�
 php artisan app:setup
 ```
 
-Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **banco**, se já existe **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. O pacote Composer é derivado automaticamente do nome da aplicação, então esse detalhe fica implícito. Se você ainda não tiver repositório remoto, pode continuar e definir o `APP_GITHUB_URL` depois. Ele também **desanexa a automação do starter** silenciosamente, deixando só o CI para os seus testes.
+Um wizard de terminal (Laravel Prompts) pergunta o **nome da aplicação**, o **banco**, se já existe **URL do repositório** e a **porta pública**, e reescreve toda a identidade do projeto de uma vez. O **pacote Composer** (`vendor/nome`) é derivado automaticamente do nome da aplicação — você não precisa informar, e `--package` fica disponível apenas como override avançado. Se você ainda não tiver repositório remoto, pode continuar e definir o `APP_GITHUB_URL` depois. Ele também **desanexa a automação do starter** silenciosamente, deixando só o CI para os seus testes.
 
 - **Preview antes de aplicar:** `php artisan app:setup --preview` mostra exatamente o que mudaria, sem tocar em nada.
 - **Reversível:** por padrão as mudanças ficam no working tree — desfaça tudo com `git restore .`. O reset do histórico é opt-in e avisado.
 - **Porta sem conflito:** detecta o que está ativo (banco, sistema, outros serviços) e sugere uma **porta alta livre** para o `APP_PORT`.
+- **Reaplicar:** `--force` ignora a guarda de "já personalizado" — útil se você quer rodar o wizard novamente para ajustar algo.
 - **Welcome operacional:** depois do rebrand, a rota `/` deixa de ser a landing do starter e passa a mostrar uma página inicial do projeto, com links para `/ops`, `/admin` e `/support`.
+- **Scripts do starter preservados:** `scripts/install*.sh`, `scripts/bootstrap-app.sh`, etc. são **ferramentas do starter** e não são reescritos pelo `app:setup` — continuam funcionando para re-installs e detecção do estado "personalizado" via `grep "name": "nandinhos/nando-lz"` no `composer.json`.
 
 Detalhes em [docs/MAINTAINER.md](docs/MAINTAINER.md).
 
@@ -214,8 +216,8 @@ app/
 docker/
   entrypoint.sh                           Bootstrap idempotente do modo Docker
   pg-init.sql                             Cria o banco de teste na 1ª inicialização do volume
-scripts/                                  Instalação e manutenção (ver abaixo)
-tests/Feature/SanityTest.php              Suíte Pest de sanidade (22 testes)
+scripts/                                  Instalação e manutenção (ver abaixo) — preservados pelo app:setup
+tests/Feature/SanityTest.php              Suíte Pest de sanidade (30 testes, state-aware)
 docs/                                     Documentação + docs/reports/auto-update/ (relatórios de ciclo)
 .github/workflows/                        ci.yml · auto-update.yml · compat-watch.yml
 Dockerfile · docker-compose.yml           Modo Docker (container não-root, restart: unless-stopped)
@@ -234,7 +236,7 @@ Todos em `scripts/`, **idempotentes** e sem `git push` embutido. Todos usam `set
 |--------|--------|
 | `install.sh` | Entrada única — menu `1) Local  2) Docker` |
 | `install-local.sh` | Instalação Local (sem Docker) |
-| `install-docker.sh` | Instalação via Docker (sem PHP/PostgreSQL locais); espera até 5 min no primeiro boot |
+| `install-docker.sh` | Instalação via Docker (sem PHP/PostgreSQL locais); espera até 5 min no primeiro boot; mensagem final com URL clicável (OSC 8) e fallback em texto puro |
 | `check-requirements.sh` | Valida versão do PHP, `ext-intl`, presença de Composer/Node/psql e permissões (exit codes 10–15) |
 | `bootstrap-app.sh` | `.env`, chave, migrations e build — idempotente (`--no-build`, respeita `ARTISAN`) |
 | `reset-app.sh` | Recria o banco limpo (destrutivo; `--force`) |
@@ -246,14 +248,21 @@ Todos em `scripts/`, **idempotentes** e sem `git push` embutido. Todos usam `set
 
 ## Testes
 
-Suíte Pest de sanidade sobre PostgreSQL — **22 testes, 53 asserts** — no banco de teste `nando_lz_testing` (via `RefreshDatabase`):
+Suíte Pest de sanidade sobre PostgreSQL — **30 testes, ~103 asserts** — no banco de teste `nando_lz_testing` (via `RefreshDatabase`):
 
 ```bash
 php artisan test                              # Local (ou ./vendor/bin/pest)
 docker compose exec app php artisan test     # Docker — isolado, seguro
 ```
 
-Valida: a aplicação sobe; a rota inicial responde; login de cada painel; **autenticação por credenciais válidas e rejeição de inválidas na página de login do Filament** (`Livewire::test` + `fillForm`); painéis exigem autenticação; usuário autenticado acessa cada painel e vê o build no rodapé; logout não é GET (405); `POST /logout` encerra a sessão e regenera o CSRF; `superadmin:create` cria/recusa-trivial/bloqueia-duplicidade — o teste de senha usa `password123`, que passa na regra fraca de `local` mas falha na regra forte, distinguindo as duas de verdade; migrations em banco limpo.
+Valida: a aplicação sobe; a rota inicial responde; login de cada painel; **autenticação por credenciais válidas e rejeição de inválidas na página de login do Filament** (`Livewire::test` + `fillForm`); painéis exigem autenticação; usuário autenticado acessa cada painel e vê o build no rodapé; logout não é GET (405); `POST /logout` encerra a sessão e regenera o CSRF; `superadmin:create` cria/recusa-trivial/bloqueia-duplicidade — o teste de senha usa `password123`, que passa na regra fraca de `local` mas falha na regra forte, distinguindo as duas de verdade; migrations em banco limpo; README bate exato com a stack instalada (guarda de drift); `app:setup` permite continuar sem repositório remoto; **app:setup não reescreve scripts/** do starter.
+
+**State-aware:** os testes da welcome detectam o estado real do projeto (`config('app.name')`) e aplicam os asserts apropriados:
+
+- **Starter** (`APP_NAME=nando-lz`, rota renderiza `welcome.blade.php`): monitor com data do último ciclo, comando `git remote add origin` quando sem repo.
+- **Personalizado** (qualquer outro nome, rota renderiza `project-welcome.blade.php`): apenas os asserts que valem para a welcome operacional.
+
+A suíte passa em ambos os estados — você pode rodar `php artisan test` em um clone virgem e em um projeto pós-`app:setup`, sem mudanças.
 
 ---
 
