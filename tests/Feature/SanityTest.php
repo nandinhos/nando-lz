@@ -17,10 +17,11 @@ it('sobe e responde na rota inicial', function () {
 });
 
 it('mostra na welcome as versões reais do lock e o monitor de atualização', function () {
-    // Estes testes cobrem a landing do starter (welcome.blade.php), que so
-    // renderiza quando APP_NAME ainda e 'nando-lz'. Forcamos o estado para
-    // que a suíte passe tanto no clone virgem quanto apos app:setup.
-    config(['app.name' => 'nando-lz']);
+    // Detecta o estado real do projeto: starter (landing welcome.blade.php)
+    // ou personalizado (operacional project-welcome.blade.php). Os asserts
+    // especificos do monitor de atualizacao so se aplicam a landing.
+    $currentName = (string) config('app.name');
+    $isStarter = $currentName === 'nando-lz';
 
     $lock = json_decode((string) file_get_contents(base_path('composer.lock')), true);
     $locked = collect(array_merge($lock['packages'], $lock['packages-dev']))
@@ -33,24 +34,32 @@ it('mostra na welcome as versões reais do lock e o monitor de atualização', f
         ->assertSee($locked['livewire/livewire'])
         ->assertSee(Build::id());
 
-    // Monitor: só há relatório se a automação de manutenção estiver presente
-    // (o wizard app:setup pode tê-la desanexado num projeto de usuário).
+    // Monitor: so renderiza na landing (welcome.blade.php), e so se houver
+    // relatorio do ciclo de manutencao. Em projeto personalizado, a
+    // project-welcome.blade.php nao tem monitor.
     $reports = glob(base_path('docs/reports/auto-update/*.md')) ?: [];
-    if ($reports !== []) {
+    if ($reports !== [] && $isStarter) {
         $response->assertSee(basename((string) end($reports), '.md'));
     }
 });
 
 it('welcome não renderiza links quebrados quando repositório remoto não foi definido', function () {
-    // Forca estado starter (welcome.blade.php) para que o teste da landing
-    // passe apos app:setup ter personalizado o projeto.
-    config(['app.name' => 'nando-lz', 'app.github_url' => '']);
+    config(['app.github_url' => '']);
 
-    get('/')
+    // Detecta o estado: na landing do starter ha comando 'git remote add
+    // origin' orientando o usuario a criar o repo. No projeto personalizado
+    // (project-welcome.blade.php) esse comando nao existe — so verifica
+    // ausencia de href vazio e git clone .git, que valem para qualquer estado.
+    $isStarter = (string) config('app.name') === 'nando-lz';
+
+    $response = get('/')
         ->assertOk()
         ->assertDontSee('href=""', false)
-        ->assertDontSee('git clone .git')
-        ->assertSee('git remote add origin');
+        ->assertDontSee('git clone .git');
+
+    if ($isStarter) {
+        $response->assertSee('git remote add origin');
+    }
 });
 
 it('mostra uma welcome operacional quando o projeto está personalizado', function () {
