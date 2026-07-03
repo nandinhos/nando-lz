@@ -17,6 +17,11 @@ it('sobe e responde na rota inicial', function () {
 });
 
 it('mostra na welcome as versões reais do lock e o monitor de atualização', function () {
+    // Estes testes cobrem a landing do starter (welcome.blade.php), que so
+    // renderiza quando APP_NAME ainda e 'nando-lz'. Forcamos o estado para
+    // que a suíte passe tanto no clone virgem quanto apos app:setup.
+    config(['app.name' => 'nando-lz']);
+
     $lock = json_decode((string) file_get_contents(base_path('composer.lock')), true);
     $locked = collect(array_merge($lock['packages'], $lock['packages-dev']))
         ->keyBy('name')->map(fn ($p) => ltrim($p['version'], 'v'));
@@ -37,7 +42,9 @@ it('mostra na welcome as versões reais do lock e o monitor de atualização', f
 });
 
 it('welcome não renderiza links quebrados quando repositório remoto não foi definido', function () {
-    config(['app.github_url' => '']);
+    // Forca estado starter (welcome.blade.php) para que o teste da landing
+    // passe apos app:setup ter personalizado o projeto.
+    config(['app.name' => 'nando-lz', 'app.github_url' => '']);
 
     get('/')
         ->assertOk()
@@ -98,14 +105,14 @@ it('superadmin:create cria o primeiro usuário (interativo, senha forte)', funct
 
     artisan('superadmin:create')
         ->expectsQuestion('Nome', 'Nando')
-        ->expectsQuestion('E-mail', 'root@nando-lz.test')
+        ->expectsQuestion('E-mail', 'root@nando-dev.test')
         // Fixture de teste (não é segredo): precisa passar na regra forte
         // (mín. 12, maiúsc./minúsc., números, símbolos) fora de `local`.
         ->expectsQuestion('Senha', 'Senha-Fake-De-Teste-123!')
         ->expectsQuestion('Confirme a senha', 'Senha-Fake-De-Teste-123!')
         ->assertSuccessful();
 
-    expect(User::where('email', 'root@nando-lz.test')->exists())->toBeTrue();
+    expect(User::where('email', 'root@nando-dev.test')->exists())->toBeTrue();
 });
 
 it('superadmin:create recusa senha trivial fora de local', function () {
@@ -113,7 +120,7 @@ it('superadmin:create recusa senha trivial fora de local', function () {
     // (mín. 12 + maiúsculas + símbolos) — distingue as duas regras de verdade.
     artisan('superadmin:create')
         ->expectsQuestion('Nome', 'Nando')
-        ->expectsQuestion('E-mail', 'root@nando-lz.test')
+        ->expectsQuestion('E-mail', 'root@nando-dev.test')
         ->expectsQuestion('Senha', 'password123')
         ->expectsQuestion('Confirme a senha', 'password123')
         ->assertFailed();
