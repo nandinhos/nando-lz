@@ -130,8 +130,8 @@ Travada e verificada em 2026-07-01. **O Filament é o pacote limitante:** a majo
 <!-- stack:table:start -->
 | Componente | Versão | Observação |
 |-----------|--------|------------|
-| Laravel | 13.18.0 | major derivada do Filament |
-| Filament | 5.6.7 | pacote limitante |
+| Laravel | 13.18.1 | major derivada do Filament |
+| Filament | 5.6.8 | pacote limitante |
 | Livewire | 4.3.3 | transitivo via Filament — **nunca fixar direto** |
 | Pest | 4.7.4 | framework único de testes |
 | PHP | `^8.3` | piso; validado em 8.3 e 8.4 no CI (o Docker usa 8.4) |
