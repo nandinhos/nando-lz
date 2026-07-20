@@ -60,8 +60,14 @@ fi
 # §7.3(6+7+9) migrations em banco limpo + suíte Pest + smoke dos painéis.
 run "pest (migrations, painéis, logout, superadmin)" ./vendor/bin/pest
 
-# §7.3(8) build de assets.
-run "build de assets" npm run build
+# §7.3(8) build de assets. Só roda se houver node_modules instalado
+# (working tree do agente não tem; release de produção tem).
+if [ -d node_modules ] && [ -f package-lock.json ]; then
+  run "build de assets" npm run build
+else
+  STEPS+="- ⏭ build de assets pulado (node_modules ausente — contexto working tree)\n"
+  echo "── build de assets pulado (node_modules ausente)"
+fi
 
 AFTER="$(./scripts/resolve-stack.sh 2>/dev/null || echo '{}')"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'sem-git')"
