@@ -6,17 +6,17 @@ Travada e verificada. **Filament é o pacote limitante:** a major do Laravel é 
 
 | Componente | Versão | Observação |
 |-----------|--------|------------|
-| Laravel | 13.18.0 | major derivada do Filament |
-| Filament | 5.6.7 | pacote limitante |
-| Livewire | 4.3.3 | transitivo via Filament — **nunca fixar direto** |
-| Pest | 4.7 | testes |
+| Laravel | 13.24.0 | major derivada do Filament |
+| Filament | 5.7.6 | pacote limitante |
+| Livewire | 4.4.0 | transitivo via Filament — **nunca fixar direto** |
+| Pest | 4.7.8 | testes |
 | PHP | `^8.3` | piso da constraint; roda em 8.4 (o Docker usa 8.4) |
 | PostgreSQL | 16 | |
 | Node | 22 | |
 
 O `composer.json` fixa `config.platform.php = 8.3.0`: o Composer resolve o lock como se rodasse no **piso** da constraint, garantindo que o lock seja válido em qualquer PHP ≥ 8.3 — mesmo quando gerado em uma máquina com 8.4.
 
-Versões instáveis (alpha/beta/RC/dev/nightly) são **proibidas sem autorização humana em issue**. Exemplo: o Filament `5.7.0-beta1` existe hoje, mas está fora do alvo.
+Versões instáveis (alpha/beta/RC/dev/nightly) são **proibidas sem autorização humana em issue**. Qualquer pré-release do Filament permanece fora do alvo.
 
 ## Resolução de compatibilidade (§4)
 
@@ -70,22 +70,22 @@ Campos do JSON:
 {
     "limiting_package": "filament/filament",
     "filament": {
-        "current": "5.6.7",
-        "latest_stable": "5.6.7"
+        "current": "5.7.6",
+        "latest_stable": "5.7.6"
     },
     "laravel": {
-        "current": "13.18.0",
-        "latest_stable": "13.18.0",
+        "current": "13.24.0",
+        "latest_stable": "13.24.0",
         "illuminate_constraint": "^11.28|^12.0|^13.0",
         "max_supported_major": 13,
         "target_major": 13
     },
     "livewire": {
-        "current": "4.3.3",
+        "current": "4.4.0",
         "note": "transitivo via Filament"
     },
     "pest": {
-        "current": "4.7.4"
+        "current": "4.7.8"
     },
     "php": {
         "running": "8.4",

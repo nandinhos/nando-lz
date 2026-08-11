@@ -2,9 +2,9 @@
 
 Os buckets respondem a “quando corrigir”; a severidade nos arquivos de área responde a “quão grave é”. Esforço: `S` pequeno, `M` médio, `L` grande, `XL` muito grande.
 
-## Execução em 2026-08-10
+## Execução em 2026-08-11
 
-Os itens P0 de banco, Pint, publicação idempotente, notificação pós-falha e suspensão do auto-merge foram implementados no commit `b8369bb`. Dependem de confirmação remota: novo run do GitHub Actions e configuração administrativa que permita PRs criados por Actions.
+Os itens P0 de banco, Pint, publicação idempotente, notificação pós-falha e suspensão do auto-merge foram mergeados em `24c9abf` pela PR #7. O CI remoto passou em PHP 8.3, PHP 8.4 e GitGuardian; a política administrativa de PRs do GitHub Actions também foi confirmada.
 
 ## P0 — antes de confiar no sistema
 
@@ -12,7 +12,7 @@ Os itens P0 de banco, Pint, publicação idempotente, notificação pós-falha e
 |---|---|---|
 | Alinhar PostgreSQL de teste | **Implementado.** `DB_HOST`, `DB_DATABASE` e `DB_USERNAME` estão alinhados em CI, Auto Update e PHPUnit; os serviços efêmeros usam `trust` sem senha versionada. | S |
 | Restabelecer o gate Pint | **Implementado.** `SanityTest.php` foi formatado e Pint entrou no ciclo automático. | S |
-| Corrigir publicação de PR | **Parcial.** O preflight e a idempotência estão implementados; falta habilitar a política administrativa do repositório. | M |
+| Corrigir publicação de PR | **Implementado e validado remotamente.** O preflight, a idempotência e a política administrativa foram confirmados na PR #7. | M |
 | Garantir notificação de falha | **Implementado.** A issue usa condição pós-falha e falhas de notificação não são ocultadas. | S |
 | Suspender ou corrigir auto-merge | **Suspenso.** O workflow foi removido até validar checks, label e política de merge. | M |
 
@@ -31,7 +31,7 @@ Os itens P0 de banco, Pint, publicação idempotente, notificação pós-falha e
 | Item | Por que | Esforço |
 |---|---|---|
 | Tornar o relatório estruturado | Registrar dependências alteradas, detalhes de falhas, próximos passos, link do PR e hash final do commit, conforme a política. | M |
-| Corrigir o status da landing | `Stack::lastUpdate()` encontra `✅` antes de `❌` e pode mostrar um ciclo falho como bem-sucedido. | S |
+| Corrigir o status da landing | **Implementado em `59cadfe`.** O monitor usa `Resultado geral` do relatório e não os ícones dos gates individuais. | S |
 | Tornar `stack:sync --check` estrito | Falhar quando marcadores estão ausentes/malformados, em vez de considerar o README sincronizado. | S |
 | Validar argumentos e retornos | `update-stack.sh` ignora argumentos desconhecidos e `app:setup` ignora o retorno de `composer update --lock`. | S |
 | Atualizar documentação de testes | Há números conflitantes: `pest --list-tests` enumera 30 casos, enquanto vários docs ainda dizem 22/53 asserts. | S |

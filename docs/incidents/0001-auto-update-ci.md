@@ -2,7 +2,7 @@
 
 - Data da investigação: 2026-08-10
 - Run de referência: [31385014699](https://github.com/nandinhos/nando-lz/actions/runs/31385014699)
-- Status: corrigido no código; aguardando confirmação em novo run remoto
+- Status: corrigido e confirmado remotamente
 
 ## Sintoma
 
@@ -33,6 +33,12 @@ Os seis runs semanais do `auto-update.yml` terminavam com `exit code 1`, sem Pul
 - Um novo ciclo deve verificar tanto o resultado dos gates quanto o caminho de publicação.
 - A política administrativa `can_approve_pull_request_reviews` do repositório precisa ser habilitada conscientemente antes de considerar a abertura automática de PR verificada.
 - O auto-merge só pode ser reintroduzido com os nomes reais dos required checks e uma decisão explícita de segurança.
+
+## Confirmação remota
+
+- A [PR #7](https://github.com/nandinhos/nando-lz/pull/7) foi mergeada em `24c9abf` em 2026-08-11.
+- O run de CI `31455478655` passou em PHP 8.3 e PHP 8.4; o GitGuardian também passou.
+- A política do repositório confirmou `default_workflow_permissions=write` e `can_approve_pull_request_reviews=true`.
 
 ## Evidências locais
 

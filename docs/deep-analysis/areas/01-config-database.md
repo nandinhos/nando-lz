@@ -2,7 +2,7 @@
 
 ## Resumo
 
-Há uma separação conceitual correta entre banco de desenvolvimento e banco de testes, mas uma mudança recente colocou `phpunit.xml` em conflito com o usuário provisionado pelos workflows. Esse é o primeiro defeito causal do run atual.
+O diagnóstico original encontrou conflito entre `phpunit.xml` e os services PostgreSQL. O CI e o Auto Update agora usam as mesmas variáveis de banco e autenticação `trust` apenas nos serviços efêmeros.
 
 ## Implementado
 
@@ -20,9 +20,9 @@ Há uma separação conceitual correta entre banco de desenvolvimento e banco de
 
 ## Flaws
 
-- **[✅ confirmado / high] Usuário e senha incompatíveis.** `phpunit.xml:31-33` força `DB_USERNAME=nando_lz` e não define `DB_PASSWORD`; o service cria `POSTGRES_USER=postgres` e `POSTGRES_PASSWORD=postgres`: `.github/workflows/auto-update.yml:23-27`. Os runs atuais registram `Role "nando_lz" does not exist` e `password authentication failed`.
-- **[✅ confirmado / high] O gate falha antes de validar a aplicação.** `scripts/update-stack.sh:60-61` executa Pest, mas a conexão morre antes das migrations e dos fluxos HTTP. No run `31385014699`, foram observadas 28 falhas e 2 sucessos.
+- **[corrigido e validado] Usuário e senha incompatíveis.** PHPUnit, CI e Auto Update convergem em `postgres`/`nando_lz_testing`; os serviços efêmeros usam `trust`, sem senha versionada.
+- **[corrigido e validado] Gate antes da aplicação.** A PR #7 passou nos dois jobs PHP após migrations, build e Pest.
 
 ## Veredito
 
-**flawed**: a solução deve escolher uma fonte única de credenciais e validar a conexão real, não apenas o healthcheck do processo PostgreSQL.
+**corrigido para CI e Auto Update**: a fonte de credenciais é única e a matriz remota comprovou a conexão real.

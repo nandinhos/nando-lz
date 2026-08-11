@@ -2,7 +2,7 @@
 
 ## Resumo
 
-As constraints principais são coerentes com PHP 8.3+, Laravel 13 e Filament 5; o build local passa. O caminho de atualização, porém, atualiza locks sem um gate Pint equivalente e depende de rede e de scripts Composer.
+As constraints principais são coerentes com PHP 8.3+, Laravel 13 e Filament 5; o build local passa. O caminho de atualização executa Pint e auditorias, mas ainda depende de rede e de scripts Composer.
 
 ## Implementado
 
@@ -14,16 +14,16 @@ As constraints principais são coerentes com PHP 8.3+, Laravel 13 e Filament 5; 
 
 ## Gaps
 
-- **[✅ confirmado / medium] O ciclo de update não executa Pint.** A política descreve gates e o CI executa Pint, mas `scripts/update-stack.sh` não o chama: `.github/workflows/ci.yml:77-78`; `scripts/update-stack.sh:50-70`.
+- **[corrigido] O ciclo de update executa Pint.** `scripts/update-stack.sh` bloqueia o ciclo quando Pint falha.
 - **[⚪ médio] Actions não estão pinadas por SHA.** Workflows usam tags móveis (`actions/checkout@v7`, `actions/setup-node@v6`, `actions/cache@v6`, `actions/github-script@v7`): `.github/workflows/*.yml`.
 - **[⚪ médio] O helper Python não declara PyJWT/cryptography.** O script depende deles por import dinâmico: `scripts/github-app-auth.py:62-68`.
 
 ## Flaws
 
-- **[✅ confirmado / high] A matriz real está vermelha.** O CI falhou no Pint antes de migrations, build e Pest em PHP 8.3 e 8.4: run `29749040557`; `ci.yml:42-90`.
+- **[corrigido e validado] A matriz real está verde.** A PR #7 passou em PHP 8.3 e 8.4, incluindo Pint, migrations, build e Pest.
 - **[corrigido] Auditoria NPM agora bloqueia.** `scripts/update-stack.sh` trata `npm audit --audit-level=high` como gate e o `package-lock.json` foi atualizado sem vulnerabilidades.
 - **[⚪ médio] O update é dependente de rede sem retry de alto nível.** Composer, NPM, Packagist e audits podem falhar em conjunto; o resolver tem timeout, mas não há backoff/diagnóstico persistido além do rótulo do gate: `scripts/resolve-stack.sh:25-28`; `scripts/update-stack.sh:33`.
 
 ## Veredito
 
-**partial**: a stack instala e compila localmente, porém a matriz de qualidade e a política de auditoria ainda não estão alinhadas.
+**partial**: a stack instala, compila e passa na matriz de qualidade; restam pinagem por SHA e resiliência de rede.

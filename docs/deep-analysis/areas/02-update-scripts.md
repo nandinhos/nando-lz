@@ -22,7 +22,7 @@ Os scripts têm uma intenção boa de coletar falhas e gerar relatório, mas a c
 ## Flaws
 
 - **[✅ confirmado / medium] Resolução usa metadado travado para o pacote alvo.** A última versão estável vem da Packagist, mas a constraint `illuminate/*` vem de `filament/support` no lock atual: `scripts/resolve-stack.sh:44-62`. Uma mudança de compatibilidade na versão alvo só é descoberta indiretamente pelo Composer depois.
-- **[✅ confirmado / medium] Status da landing pode mentir.** Relatórios falhos contêm `✅` de gates passados e `❌` do resultado; `Stack::lastUpdate()` testa `✅` primeiro: `scripts/update-stack.sh:80-84`; `app/Support/Stack.php:91-99`.
+- **[corrigido em `59cadfe`] Status da landing.** `Stack::lastUpdate()` usa a linha `Resultado geral` do relatório, que é a fonte explícita do veredito.
 - **[✅ confirmado / medium] `app:setup` ignora erro do re-hash.** `exec('composer update --lock ...')` não captura o código de saída e o comando retorna sucesso: `app/Console/Commands/SetupProject.php:160-177`.
 
 ## Veredito
