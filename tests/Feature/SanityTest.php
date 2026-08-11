@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Support\Build;
 use Filament\Auth\Pages\Login;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -204,7 +205,7 @@ it('app:setup nao reescreve scripts/ do starter', function () {
         ->assertSuccessful();
 
     // Nenhum arquivo de scripts/ deve aparecer na lista de "serao reescritos".
-    $preview = \Illuminate\Support\Facades\Artisan::output();
+    $preview = Artisan::output();
     expect($preview)
         ->not->toContain('scripts/install-docker.sh')
         ->not->toContain('scripts/install.sh')

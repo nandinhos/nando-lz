@@ -39,7 +39,7 @@ flowchart TD
 
 | Classe | O que é | Ação | Merge |
 |--------|---------|------|-------|
-| **AUTO** | patch, minor compatível, correção de segurança, lock file, dependência dev, ajuste documental | aplicar na branch, validar, abrir PR | automático **somente se**: AUTO pura + CI verde + zero mudança de constraint + política `auto-merge` habilitada no repo |
+| **AUTO** | patch, minor compatível, correção de segurança, lock file, dependência dev, ajuste documental | aplicar na branch, validar, abrir PR | humano até existir decisão aprovada, checks verificados e workflow `auto-merge` reintroduzido |
 | **REVIEW** | major de Laravel/Filament/PHP/Livewire; troca/remoção de pacote; mudança estrutural de auth/painéis; base image Docker com breaking change; migração manual | branch + relatório + PR `needs-human-approval` | **exclusivamente humano** |
 | **BLOCKED** | incompatibilidade upstream (§4.2) | **sem PR** — issue rastreadora + monitoramento semanal | — |
 
@@ -51,7 +51,7 @@ flowchart TD
 4. `composer validate --strict`.
 5. `composer audit` (**falha = bloqueio**) e `npm audit --audit-level=high`.
 6. Migrations em banco efêmero limpo (serviço PostgreSQL).
-7. Suíte Pest completa (22 testes).
+7. Suíte Pest completa (30 casos expandidos).
 8. Build de assets.
 9. Smoke HTTP dos 3 painéis (200/302 autenticado) — coberto pela suíte Pest.
 10. Validar `POST /logout`.
@@ -72,6 +72,7 @@ Workflows em `.github/workflows/`:
   - **Bootstrap idempotente de labels** (`auto-update`, `needs-human-approval`, `security`) — funciona em forks/clones novos.
   - Após abrir o PR, dispara `gh workflow run ci.yml --ref <branch>`: pushes feitos com `GITHUB_TOKEN` **não disparam workflows** (regra do GitHub Actions) e, sem esse dispatch, o PR ficaria preso em "Expected" nos required checks. Por isso o workflow tem permissão `actions: write`.
   - Labels: `auto-update` sempre; `needs-human-approval` se o `composer.json` mudou (major/constraint = REVIEW) ou se o ciclo falhou. Falha do ciclo gera issue `maintenance-failure`.
+  - O `auto-merge.yml` está suspenso até que a política de checks obrigatórios e autorização de merge automático seja aprovada.
 
 - **`compat-watch.yml`** — vigia a janela de incompatibilidade (§4.2). Semanal. Roda `resolve-stack.sh`; se `blocked_upstream` for verdadeiro, cria/atualiza a issue rastreadora `compat: aguardando Filament x Laravel N` — onde **N é a major aguardada correta**: a última estável do Laravel que o Filament ainda não suporta. Faz bootstrap idempotente do label `blocked-upstream`; quando o upstream liberar, fecha a issue.
 
