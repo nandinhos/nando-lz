@@ -18,6 +18,13 @@ jobs:
   test:
     name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: nando_lz_testing
+      DB_USERNAME: postgres
+      DB_PASSWORD: ''
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +35,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: nando_lz_testing
         ports:
           - 5432:5432

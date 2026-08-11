@@ -33,6 +33,15 @@ O `ci.yml` **não** é maintenance — é o gate universal de qualquer projeto e
 
 Detalhes de política em [AUTO_UPDATE_POLICY.md](AUTO_UPDATE_POLICY.md).
 
+## Permissões do Auto Update
+
+Antes de confiar na publicação automática, em `Settings → Actions → General` do repositório:
+
+1. selecione **Read and write permissions** para o `GITHUB_TOKEN`;
+2. habilite **Allow GitHub Actions to create and approve pull requests**.
+
+O workflow verifica a segunda opção antes de publicar. Se ela estiver desabilitada, o ciclo preserva o diagnóstico e tenta abrir a issue de falha, mas não afirma que o PR foi criado.
+
 ## O wizard `app:setup`
 
 Comando interativo (Laravel Prompts) que transforma um clone em projeto próprio. O `install.sh` o oferece automaticamente num clone ainda não personalizado.

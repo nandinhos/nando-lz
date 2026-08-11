@@ -12,7 +12,7 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 6. **Não criar regra de negócio.** O starter não tem domínio.
 7. **Não transformar o starter em produto** (sem SaaS, checkout, pagamento, convite, multitenancy; a landing é só vitrine técnica do starter).
 8. **Manter os 3 painéis funcionando** (`ops`, `admin`, `support`) — login, perfil, 2FA opcional e build id no rodapé.
-9. **Rodar a suíte de testes após qualquer alteração** (`php artisan test` / `./vendor/bin/pest` — 22 testes, 53 asserts).
+9. **Rodar a suíte de testes após qualquer alteração** (`php artisan test` / `./vendor/bin/pest` — 30 casos expandidos).
 10. **Registrar decisões no relatório do ciclo** em `docs/reports/auto-update/YYYY-MM-DD.md`.
 11. **Jamais sobrescrever o `.env` real.** `bootstrap-app.sh` só cria `.env` se faltar; `.env` real nunca é versionado.
 12. **Manter paridade Local↔Docker.** O que funciona em Local funciona em Docker e vice-versa (ver allowlist do `serve` em `TROUBLESHOOTING.md`).
@@ -27,7 +27,7 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 4. `composer validate --strict`.
 5. `composer audit` (falha = bloqueio) e `npm audit --audit-level=high`.
 6. Migrations em banco efêmero limpo (serviço PostgreSQL).
-7. Suíte Pest completa.
+7. Suíte Pest completa (30 casos expandidos).
 8. Build de assets.
 9. Smoke HTTP dos 3 painéis (200/302 autenticado) — coberto pela suíte Pest.
 10. Validar `POST /logout` (encerra sessão, regenera CSRF).

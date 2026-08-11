@@ -86,7 +86,7 @@ Painéis: `/ops`, `/admin` (default), `/support`.
 
 ```bash
 php artisan migrate            # aplica migrations
-php artisan test               # roda a suíte Pest (22 testes, banco nando_lz_testing)
+php artisan test               # roda a suíte Pest (30 casos expandidos, banco nando_lz_testing)
 ./vendor/bin/pest              # idem
 ./scripts/test-app.sh [args]   # roda o Pest repassando argumentos
 ./scripts/reset-app.sh         # DESTRUTIVO: migrate:fresh + limpa caches (pede confirmação)

@@ -3,7 +3,7 @@
 # update-stack.sh — Ponto de entrada do ciclo do agente (PRD §7).
 #
 # Roda os GATES do §7.3 (subconjunto local: resolução, validação, audit,
-# testes/migrations, build) e gera o relatório do ciclo. NUNCA cria branch,
+# estilo, testes/migrations, build) e gera o relatório do ciclo. NUNCA cria branch,
 # NUNCA faz commit e NUNCA faz push — isso é responsabilidade do workflow
 # auto-update.yml (Camada 3). O smoke HTTP dos 3 painéis (§7.3 gate 9) é
 # coberto pela suíte Pest.
@@ -18,7 +18,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
 DRY=0
-[ "${1:-}" = "--dry-run" ] && DRY=1
+case "${1:-}" in
+  "") ;;
+  --dry-run) DRY=1 ;;
+  *) echo "Uso: $0 [--dry-run]" >&2; exit 2 ;;
+esac
 
 DATE="$(date +%F)"
 REPORT_DIR="docs/reports/auto-update"
@@ -50,14 +54,14 @@ fi
 # §7.3(4) composer validate --strict.
 run "composer validate --strict" composer validate --strict
 
-# §7.3(5) auditorias de segurança (composer bloqueia; npm é best-effort).
+# §7.3(5) auditorias de segurança.
 run "composer audit" composer audit
 if [ -f package-lock.json ]; then
-  echo "── npm audit (best-effort)"
-  npm audit --audit-level=high || STEPS+="- ⚠️ npm audit reportou avisos\n"
+  run "npm audit --audit-level=high" npm audit --audit-level=high
 fi
 
-# §7.3(6+7+9) migrations em banco limpo + suíte Pest + smoke dos painéis.
+# §7.3(6+7+9) estilo, migrations em banco limpo + suíte Pest + smoke dos painéis.
+run "Pint (estilo de código)" ./vendor/bin/pint --test
 run "pest (migrations, painéis, logout, superadmin)" ./vendor/bin/pest
 
 # §7.3(8) build de assets. Só roda se houver node_modules instalado
