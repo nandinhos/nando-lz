@@ -76,4 +76,5 @@ O que faz:
 
 1. O ciclo `auto-update.yml` roda toda segunda 08:00 (America/Sao_Paulo) ou sob demanda (`workflow_dispatch`).
 2. Ele resolve a stack (§4.1), aplica patch/minor, roda os gates (§7.3) e abre PR — **nunca faz merge**.
-3. Revise, garanta o CI verde e faça o merge. Gere a tag/release SemVer ([VERSION_POLICY.md](VERSION_POLICY.md)).
+3. Revise, garanta o CI verde e faça o merge. O workflow `Deploy production` publica automaticamente o SHA aprovado na `main`; consulte [DEPLOYMENT.md](DEPLOYMENT.md) para operação e recuperação.
+4. Gere a tag/release SemVer ([VERSION_POLICY.md](VERSION_POLICY.md)).
