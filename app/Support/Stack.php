@@ -91,11 +91,13 @@ class Stack
         sort($reports); // nomes YYYY-MM-DD.md ordenam cronologicamente
         $latest = end($reports);
         $body = (string) file_get_contents($latest);
+        $result = preg_match('/^- Resultado geral: (✅|❌)/mu', $body, $match) === 1
+            ? $match[1] === '✅'
+            : null;
 
         return [
             'date' => basename($latest, '.md'),
-            // null = relatório sem veredito legível (formato inesperado)
-            'ok' => str_contains($body, '✅') ? true : (str_contains($body, '❌') ? false : null),
+            'ok' => $result,
             'path' => 'docs/reports/auto-update/'.basename($latest),
         ];
     }
