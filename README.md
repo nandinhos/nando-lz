@@ -311,6 +311,10 @@ Notas de produção:
 - `php artisan serve` é simples e funcional; para carga pesada, o upgrade path é php-fpm + Nginx ou Laravel Octane (ver [docs/DOCKER.md](docs/DOCKER.md)).
 - Prefira volumes gerenciados para o PostgreSQL (o compose já usa o volume `pgdata`).
 
+### Publicação automática da instância mantida
+
+A instância `nandolz.fssdev.com.br` usa Nginx + PHP-FPM e releases atômicas, não Docker. Depois de um `CI` verde na `main`, o GitHub Actions publica o SHA aprovado por uma chave SSH restrita, exige o health check `/up` e restaura o código anterior se ele falhar. O contrato operacional e a recuperação estão em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 > [!CAUTION]
 > `docker compose down -v` **apaga o volume `pgdata` — todo o banco de dados**, incluindo o de teste. Use `docker compose down` (sem `-v`) para parar sem destruir dados.
 
