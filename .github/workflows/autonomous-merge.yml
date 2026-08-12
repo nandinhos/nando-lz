@@ -121,12 +121,15 @@ jobs:
               head_sha="$(gh pr view "$pr" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid)"
               checks="$(gh api --paginate "repos/$REPOSITORY/commits/$head_sha/check-runs?per_page=100" --jq '.check_runs')"
               if jq -e '
-                length > 0 and
-                all(.[]; .status == "COMPLETED" and .conclusion == "SUCCESS") and
-                ([.[].name] | index("PHP 8.3")) and
-                ([.[].name] | index("PHP 8.4")) and
-                ([.[].name] | index("Dependency audit")) and
-                ([.[].name] | index("GitGuardian Security Checks"))
+                def latest_required($name):
+                  ([.[] | select(.name == $name)] | sort_by(.completed_at // .started_at // .id) | last);
+
+                [
+                  latest_required("PHP 8.3"),
+                  latest_required("PHP 8.4"),
+                  latest_required("Dependency audit"),
+                  latest_required("GitGuardian Security Checks")
+                ] | all(.[]; . != null and .status == "completed" and .conclusion == "success")
               ' <<< "$checks" >/dev/null; then
                 return 0
               fi
