@@ -116,17 +116,25 @@ jobs:
           }
 
           all_checks_green() {
-            local pr="$1" head_sha checks
-            head_sha="$(gh pr view "$pr" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid)"
-            checks="$(gh api --paginate "repos/$REPOSITORY/commits/$head_sha/check-runs?per_page=100" --jq '.check_runs')"
-            jq -e '
-              length > 0 and
-              all(.[]; .status == "COMPLETED" and .conclusion == "SUCCESS") and
-              ([.[].name] | index("PHP 8.3")) and
-              ([.[].name] | index("PHP 8.4")) and
-              ([.[].name] | index("Dependency audit")) and
-              ([.[].name] | index("GitGuardian Security Checks"))
-            ' <<< "$checks" >/dev/null
+            local pr="$1" head_sha checks attempt
+            for attempt in 1 2 3; do
+              head_sha="$(gh pr view "$pr" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid)"
+              checks="$(gh api --paginate "repos/$REPOSITORY/commits/$head_sha/check-runs?per_page=100" --jq '.check_runs')"
+              if jq -e '
+                length > 0 and
+                all(.[]; .status == "COMPLETED" and .conclusion == "SUCCESS") and
+                ([.[].name] | index("PHP 8.3")) and
+                ([.[].name] | index("PHP 8.4")) and
+                ([.[].name] | index("Dependency audit")) and
+                ([.[].name] | index("GitGuardian Security Checks"))
+              ' <<< "$checks" >/dev/null; then
+                return 0
+              fi
+
+              [ "$attempt" = 3 ] || sleep 10
+            done
+
+            return 1
           }
 
           mark_blocked() {
