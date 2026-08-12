@@ -108,7 +108,7 @@ jobs:
           git commit -m "chore(auto-update): ciclo $DATE"
           HEAD_SHA="$(git rev-parse HEAD)"
 
-          if [ "${{ steps.cycle.outcome }}" = "success" && bash scripts/assert-autonomous-update.sh origin/main "$HEAD_SHA"; then
+          if [ "${{ steps.cycle.outcome }}" = "success" ] && bash scripts/assert-autonomous-update.sh origin/main "$HEAD_SHA"; then
             LABELS="$LABELS,autonomous-candidate"
           else
             LABELS="$LABELS,needs-human-approval,autonomy-blocked"
@@ -117,12 +117,6 @@ jobs:
           git push --force-with-lease -u origin "$BRANCH"
 
           [ -f "$REPORT" ] || echo "Ciclo $DATE — relatório não gerado." > "$REPORT"
-
-          ACTIONS_CAN_APPROVE="$(gh api "repos/${{ github.repository }}/actions/permissions/workflow" --jq '.can_approve_pull_request_reviews' 2>/dev/null || echo false)"
-          if [ "$ACTIONS_CAN_APPROVE" != "true" ]; then
-            echo "::error::A política do repositório não permite que o GitHub Actions crie/aprove Pull Requests. Habilite 'Allow GitHub Actions to create and approve pull requests' ou escolha outro token autorizado."
-            exit 1
-          fi
 
           # A política do repositório precisa permitir PRs criados por Actions.
           # Não trate erro de permissão como se fosse um PR já existente.
