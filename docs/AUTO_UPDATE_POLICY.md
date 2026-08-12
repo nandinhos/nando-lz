@@ -1,28 +1,24 @@
 # Política de Auto-Atualização
 
-Como o nando-lz se mantém *evergreen* sem intervenção manual constante — e onde o humano ainda é obrigatório.
+Como o nando-lz se mantém *evergreen* sem intervenção manual constante — com autonomia limitada por evidências independentes e falha segura.
 
 ## Automação em 3 camadas (§6)
 
-### Camada 1 — Renovate
+### Camada 1 — Dependabot
 
-Arquivo `renovate.json`:
+Arquivo `.github/dependabot.yml`:
 
-- `rangeStrategy: update-lockfile` — atualiza **só o lock**, preservando as constraints do `composer.json`.
-- **Majors desabilitados apenas para composer/npm** (são responsabilidade do agente, Camada 2). **GitHub Actions ficam em grupo próprio, com majors permitidos** — evita ficar preso em actions com runtime Node deprecado.
-- Agenda no **sábado** de manhã, timezone `America/Sao_Paulo` — deliberadamente **sem colidir** com o ciclo do agente na segunda.
-- Labels `auto-update` e `dependencies`; alertas de vulnerabilidade com label `security`.
-
-> [!WARNING]
-> **Requer habilitar o app Renovate no repositório, no GitHub.** Sem isso, o `renovate.json` não tem efeito e o Renovate não abre PRs.
+- Atualiza somente as referências de GitHub Actions, em PRs semanais no sábado; Composer/NPM continuam pertencendo ao ciclo controlado da Camada 2.
+- A PR recebe `autonomous-candidate`, mas ainda precisa atravessar o árbitro e todos os checks.
+- Ações podem receber majors porque a política de diff aceita somente trocas literais de `uses: owner/action@ref`; qualquer edição de lógica YAML bloqueia o merge.
 
 ### Camada 2 — Agente de IA
 
-Workflow `auto-update.yml`. **Decide e documenta**, mas **não faz merge**. Roda `scripts/update-stack.sh`, classifica a mudança e abre PR.
+Workflow `auto-update.yml`. Atualiza Composer/NPM dentro das constraints, roda `scripts/update-stack.sh`, gera relatório e abre uma PR candidata apenas quando [scripts/assert-autonomous-update.sh](../scripts/assert-autonomous-update.sh) comprova que o diff contém exclusivamente lock files, README sincronizado e o relatório verde.
 
-### Camada 3 — CI + branch protection
+### Camada 3 — CI, árbitro e deploy
 
-Workflow `ci.yml` é o **gate universal**, complementado por **branch protection na `main`**. Nenhuma mudança entra na `main` sem CI verde.
+`ci.yml` é o gate universal com PHP 8.3, PHP 8.4 e `Dependency audit`. `autonomous-merge.yml` consome somente metadados e diff pela API, não executa o código de uma PR, e pede merge por rebase com o SHA da cabeça fixado. A branch protection mantém a `main` fechada até os checks exigidos passarem; `deploy-production.yml` publica automaticamente apenas depois do CI verde na `main`.
 
 ## Classes de mudança (§7.2)
 
@@ -39,7 +35,7 @@ flowchart TD
 
 | Classe | O que é | Ação | Merge |
 |--------|---------|------|-------|
-| **AUTO** | patch, minor compatível, correção de segurança, lock file, dependência dev, ajuste documental | aplicar na branch, validar, abrir PR | humano até existir decisão aprovada, checks verificados e workflow `auto-merge` reintroduzido |
+| **AUTO** | patch/minor dentro das constraints, lock file, README gerado e relatório do ciclo; ou troca literal de referência de GitHub Action | aplicar na branch, validar, abrir PR candidata | **autônomo** somente se origem confiável, escopo permitido e todos os checks estiverem verdes |
 | **REVIEW** | major de Laravel/Filament/PHP/Livewire; troca/remoção de pacote; mudança estrutural de auth/painéis; base image Docker com breaking change; migração manual | branch + relatório + PR `needs-human-approval` | **exclusivamente humano** |
 | **BLOCKED** | incompatibilidade upstream (§4.2) | **sem PR** — issue rastreadora + monitoramento semanal | — |
 
@@ -51,13 +47,13 @@ flowchart TD
 4. `composer validate --strict`.
 5. `composer audit` (**falha = bloqueio**) e `npm audit --audit-level=high`.
 6. Migrations em banco efêmero limpo (serviço PostgreSQL).
-7. Suíte Pest completa (30 casos expandidos).
+7. Suíte Pest completa.
 8. Build de assets.
 9. Smoke HTTP dos 3 painéis (200/302 autenticado) — coberto pela suíte Pest.
 10. Validar `POST /logout`.
 11. Gerar o relatório.
 12. Commit + abrir PR com o relatório no corpo.
-13. **Nunca fazer merge** com qualquer falha/risco ou item REVIEW/BLOCKED.
+13. O árbitro pede merge por rebase somente para AUTO com SHA fixado, `PHP 8.3`, `PHP 8.4`, `Dependency audit` e todos os checks verdes; qualquer falha/risco, item REVIEW ou BLOCKED nunca é mesclado.
 
 ## Cadência e cron (§7.1)
 
@@ -65,14 +61,14 @@ Workflows em `.github/workflows/`:
 
 - **`ci.yml`** — gate universal. Dispara em push (`main` e `maintenance/**`), `pull_request` e manual. Matriz **PHP 8.3 e 8.4 × PostgreSQL 16** (banco `nando_lz_testing`). Usa `actions/checkout@v7`, `actions/setup-node@v6` e `actions/cache@v6` (cache do Composer por hash do `composer.lock` + versão do PHP da matriz) — sem warnings de runtime Node 20. Passos: `composer validate --strict`, install, `key:generate`, `vendor/bin/pint --test`, `migrate --force`, `npm ci` + `npm run build`, `./vendor/bin/pest`.
 
-- **`auto-update.yml`** — ciclo semanal do agente. Cron `0 11 * * 1` (UTC) = **segunda 08:00 America/Sao_Paulo**; também `workflow_dispatch`. Cria branch `maintenance/auto-update-YYYY-MM-DD`, roda `scripts/update-stack.sh` e **abre PR (nunca faz merge)**. Comportamentos importantes:
+- **`auto-update.yml`** — ciclo semanal do agente. Cron `0 11 * * 1` (UTC) = **segunda 08:00 America/Sao_Paulo**; também `workflow_dispatch`. Cria branch `maintenance/auto-update-YYYY-MM-DD`, roda `scripts/update-stack.sh` e abre uma PR candidata. Comportamentos importantes:
   - **Não abre PR se só o relatório mudou** — o relatório sozinho não justifica ciclo de review.
   - Push com `git push --force-with-lease`: um **re-run no mesmo dia** sobrescreve a própria branch com segurança.
   - **Cria o PR ou atualiza o corpo** se ele já existir (re-run do dia).
-  - **Bootstrap idempotente de labels** (`auto-update`, `needs-human-approval`, `security`) — funciona em forks/clones novos.
+  - **Bootstrap idempotente de labels** (`auto-update`, `dependencies`, `autonomous-candidate`, `needs-human-approval`, `autonomy-blocked` e `security`) — funciona em forks/clones novos.
   - Após abrir o PR, dispara `gh workflow run ci.yml --ref <branch>`: pushes feitos com `GITHUB_TOKEN` **não disparam workflows** (regra do GitHub Actions) e, sem esse dispatch, o PR ficaria preso em "Expected" nos required checks. Por isso o workflow tem permissão `actions: write`.
-  - Labels: `auto-update` sempre; `needs-human-approval` se o `composer.json` mudou (major/constraint = REVIEW) ou se o ciclo falhou. Falha do ciclo gera issue `maintenance-failure`.
-  - O `auto-merge.yml` está suspenso até que a política de checks obrigatórios e autorização de merge automático seja aprovada.
+  - Labels: `autonomous-candidate` somente com diff aprovado e ciclo verde; `needs-human-approval` e `autonomy-blocked` para qualquer desvio. Falha do ciclo gera issue `maintenance-failure`.
+  - `autonomous-merge.yml` roda após CI verde, em duas varreduras horárias e manualmente. Ele aceita apenas `github-actions[bot]` em branches `maintenance/auto-update-YYYY-MM-DD`, ou `dependabot[bot]` em branches `dependabot/`; revalida o escopo pela API e nunca executa o conteúdo da PR privilegiadamente. Se a branch ficar atrás da `main`, rebaseia e dispara novamente o CI antes de considerar o merge.
 
 - **`compat-watch.yml`** — vigia a janela de incompatibilidade (§4.2). Semanal. Roda `resolve-stack.sh`; se `blocked_upstream` for verdadeiro, cria/atualiza a issue rastreadora `compat: aguardando Filament x Laravel N` — onde **N é a major aguardada correta**: a última estável do Laravel que o Filament ainda não suporta. Faz bootstrap idempotente do label `blocked-upstream`; quando o upstream liberar, fecha a issue.
 
@@ -93,7 +89,7 @@ Cada ciclo gera `docs/reports/auto-update/YYYY-MM-DD.md` com:
 
 Já existe um primeiro relatório de exemplo em `docs/reports/auto-update/`.
 
-O script `update-stack.sh [--dry-run]` gera o relatório **mesmo em falha** (exit `1`); com `--dry-run` não altera locks. Por isso ele usa `set -uo pipefail` **sem o `-e`, de propósito**: cada gate que falha é coletado e o relatório sai completo mesmo assim. Ele **nunca** cria branch, commita ou faz push — isso é responsabilidade do workflow.
+O script `update-stack.sh [--dry-run]` gera o relatório **mesmo em falha** (exit `1`); com `--dry-run` não altera locks. Por isso ele usa `set -uo pipefail` **sem o `-e`, de propósito**: cada gate que falha é coletado e o relatório sai completo mesmo assim. Ele **nunca** cria branch, commita, faz push ou merge — isso é responsabilidade dos workflows.
 
 ## Documentação sempre exata (guarda de drift)
 
@@ -105,4 +101,4 @@ As versões exibidas **têm que bater exato** com a stack instalada, em três lu
 Dois mecanismos garantem que nunca divirja:
 
 1. **Fluxo de update** — `update-stack.sh` roda `stack:sync` a cada ciclo, então todo bump de versão já atualiza o README.
-2. **Gate no CI** — um teste Pest roda `stack:sync --check` e **falha** se o README divergir da stack. Qualquer PR (agente, Renovate ou humano) que mude versões sem sincronizar fica vermelho. Correção: `php artisan stack:sync`.
+2. **Gate no CI** — um teste Pest roda `stack:sync --check` e **falha** se o README divergir da stack. Qualquer PR (agente, Dependabot ou humano) que mude versões sem sincronizar fica vermelho. Correção: `php artisan stack:sync`.

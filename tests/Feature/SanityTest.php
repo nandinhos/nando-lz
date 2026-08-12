@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\SetupProject;
 use App\Models\User;
 use App\Support\Build;
 use Filament\Auth\Pages\Login;
@@ -214,4 +215,17 @@ it('app:setup nao reescreve scripts/ do starter', function () {
         ->not->toContain('scripts/check-requirements.sh')
         ->not->toContain('scripts/reset-app.sh')
         ->not->toContain('scripts/test-app.sh');
+});
+
+it('app:setup identifica toda a automação de manutenção para remoção', function () {
+    $command = app(SetupProject::class);
+    $paths = (fn (): array => $this->maintenancePaths())->call($command);
+
+    expect($paths)->toContain(
+        '.github/workflows/auto-update.yml',
+        '.github/workflows/autonomous-merge.yml',
+        '.github/workflows/compat-watch.yml',
+        '.github/dependabot.yml',
+        'scripts/assert-autonomous-update.sh',
+    );
 });

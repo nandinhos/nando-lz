@@ -279,10 +279,12 @@ class SetupProject extends Command
     {
         return [
             '.github/workflows/auto-update.yml',
+            '.github/workflows/autonomous-merge.yml',
             '.github/workflows/compat-watch.yml',
+            '.github/dependabot.yml',
             'scripts/resolve-stack.sh',
+            'scripts/assert-autonomous-update.sh',
             'scripts/update-stack.sh',
-            'renovate.json',
         ];
     }
 

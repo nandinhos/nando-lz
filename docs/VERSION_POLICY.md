@@ -6,7 +6,7 @@ O que atualizar e como depende da classe da mudança (detalhe completo das class
 
 | Tipo de mudança | Tratamento |
 |-----------------|------------|
-| **Patch / minor compatível** | Automático (classe AUTO). Aplica na branch, valida, abre PR. |
+| **Patch / minor compatível** | Autônomo (classe AUTO). Aplica na branch, valida, passa por CI/árbitro e mescla por rebase sem revisão humana. |
 | **Major** (Laravel, Filament, PHP, Livewire) | Revisão humana (classe REVIEW). Branch + relatório + PR `needs-human-approval`. Merge exclusivamente humano. |
 | **Incompatibilidade upstream** | Bloqueado (classe BLOCKED). Sem PR; issue rastreadora + monitoramento semanal. |
 

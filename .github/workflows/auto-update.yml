@@ -1,10 +1,11 @@
 name: Auto Update
 
 # Ciclo semanal do agente (PRD §6 Camada 2 / §7). Aplica patch/minor, roda os
-# gates e ABRE PR — nunca faz merge. Segunda 08:00 America/Sao_Paulo = 11:00 UTC.
+# gates e abre uma PR candidata. O árbitro autônomo faz merge apenas depois do
+# CI independente e da validação restrita do diff. Segunda 08:00 BRT = 11:00 UTC.
 on:
   schedule:
-    - cron: '0 11 * * 1'
+    - cron: "0 11 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +28,7 @@ jobs:
       DB_PORT: 5432
       DB_DATABASE: nando_lz_testing
       DB_USERNAME: postgres
-      DB_PASSWORD: ''
+      DB_PASSWORD: ""
 
     services:
       postgres:
@@ -50,13 +51,13 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: intl, pdo_pgsql
           coverage: none
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Preparar ambiente
         run: |
@@ -76,7 +77,7 @@ jobs:
         continue-on-error: true
         run: bash scripts/update-stack.sh
 
-      - name: Abrir PR (sem merge) ou registrar falha
+      - name: Abrir PR candidata ou registrar falha
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,22 +94,25 @@ jobs:
             exit 0
           fi
 
-          # Classificação (§7.2): mexer em composer.json = major/constraint = REVIEW.
+          # Classificação (§7.2): mexer em manifests, código ou workflow = REVIEW.
           LABELS="auto-update"
-          if ! git diff --quiet -- composer.json; then
-            LABELS="$LABELS,needs-human-approval"
-          fi
-          if [ "${{ steps.cycle.outcome }}" != "success" ]; then
-            LABELS="$LABELS,needs-human-approval"
-          fi
 
           # Labels podem não existir em forks/clones novos — bootstrap idempotente.
           gh label create "auto-update"          --color 1d76db --description "PR do ciclo automático" --force
           gh label create "needs-human-approval" --color d93f0b --description "Classe REVIEW — merge só humano (§7.2)" --force
+          gh label create "autonomous-candidate" --color 0e8a16 --description "Candidata ao merge autônomo após todos os gates" --force
+          gh label create "autonomy-blocked"     --color b60205 --description "Não atende a política de autonomia" --force
           gh label create "security"             --color ee0701 --description "Correção de segurança" --force
 
           git add -A
           git commit -m "chore(auto-update): ciclo $DATE"
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          if [ "${{ steps.cycle.outcome }}" = "success" && bash scripts/assert-autonomous-update.sh origin/main "$HEAD_SHA"; then
+            LABELS="$LABELS,autonomous-candidate"
+          else
+            LABELS="$LABELS,needs-human-approval,autonomy-blocked"
+          fi
           # --force-with-lease: re-run no mesmo dia sobrescreve a própria branch com segurança.
           git push --force-with-lease -u origin "$BRANCH"
 
@@ -125,6 +129,8 @@ jobs:
           PR_NUMBER="$(gh pr list --base main --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
           if [ -n "$PR_NUMBER" ]; then
             gh pr edit "$PR_NUMBER" --body-file "$REPORT"
+            gh pr edit "$PR_NUMBER" --remove-label "autonomous-candidate" --remove-label "needs-human-approval" --remove-label "autonomy-blocked" || true
+            gh pr edit "$PR_NUMBER" --add-label "$LABELS"
           else
             gh pr create --base main --head "$BRANCH" \
               --title "Auto-update $DATE" \

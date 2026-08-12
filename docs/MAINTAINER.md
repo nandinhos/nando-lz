@@ -23,9 +23,10 @@ Estes artefatos mantêm o **starter** atualizado e **não** fazem sentido num pr
 
 | Artefato | Papel |
 |----------|-------|
-| `.github/workflows/auto-update.yml` | Ciclo semanal do agente (§7): resolve, aplica patch/minor, abre PR |
+| `.github/workflows/auto-update.yml` | Ciclo semanal do agente (§7): resolve, aplica patch/minor e abre PR candidata |
+| `.github/workflows/autonomous-merge.yml` | Árbitro sem checkout de PR: revalida autoria, escopo e checks antes do merge por rebase |
 | `.github/workflows/compat-watch.yml` | Vigia a janela de incompatibilidade Filament × Laravel (§4.2) |
-| `renovate.json` | Camada 1: PRs de lock (patch/minor) |
+| `.github/dependabot.yml` | Camada 1: PRs de atualização literal de GitHub Actions |
 | `scripts/resolve-stack.sh` | Resolvedor de compatibilidade (§4.1) |
 | `scripts/update-stack.sh` | Ponto de entrada do ciclo (§7.3) |
 
@@ -74,7 +75,7 @@ O que faz:
 
 ## Fluxo do mantenedor (manter o starter)
 
-1. O ciclo `auto-update.yml` roda toda segunda 08:00 (America/Sao_Paulo) ou sob demanda (`workflow_dispatch`).
-2. Ele resolve a stack (§4.1), aplica patch/minor, roda os gates (§7.3) e abre PR — **nunca faz merge**.
-3. Revise, garanta o CI verde e faça o merge. O workflow `Deploy production` publica automaticamente o SHA aprovado na `main`; consulte [DEPLOYMENT.md](DEPLOYMENT.md) para operação e recuperação.
-4. Gere a tag/release SemVer ([VERSION_POLICY.md](VERSION_POLICY.md)).
+1. O ciclo `auto-update.yml` roda toda segunda 08:00 (America/Sao_Paulo), e o Dependabot confere Actions aos sábados.
+2. Atualizações AUTO só prosseguem quando os gates locais, o CI e o árbitro de escopo estiverem verdes; o merge por rebase e o deploy ocorrem sem revisão humana.
+3. Alterações de major, manifest, código, migration ou qualquer escopo não previsto são bloqueadas e registradas para tratamento excepcional.
+4. Tags/release SemVer continuam manuais ([VERSION_POLICY.md](VERSION_POLICY.md)); elas nomeiam marcos, não condicionam a publicação segura.
