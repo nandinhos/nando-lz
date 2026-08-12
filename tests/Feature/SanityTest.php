@@ -3,6 +3,7 @@
 use App\Console\Commands\SetupProject;
 use App\Models\User;
 use App\Support\Build;
+use App\Support\Stack;
 use Filament\Auth\Pages\Login;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
@@ -42,6 +43,22 @@ it('mostra na welcome as versões reais do lock e o monitor de atualização', f
     $reports = glob(base_path('docs/reports/auto-update/*.md')) ?: [];
     if ($reports !== [] && $isStarter) {
         $response->assertSee(basename((string) end($reports), '.md'));
+    }
+});
+
+it('marca relatório falho como falha mesmo com gates verdes', function () {
+    $path = base_path('docs/reports/auto-update/9999-12-31.md');
+
+    file_put_contents($path, "- Resultado geral: ❌ com falhas\n- ✅ composer validate --strict\n");
+
+    try {
+        expect(Stack::snapshot()['lastUpdate'])->toMatchArray([
+            'date' => '9999-12-31',
+            'ok' => false,
+            'path' => 'docs/reports/auto-update/9999-12-31.md',
+        ]);
+    } finally {
+        unlink($path);
     }
 });
 

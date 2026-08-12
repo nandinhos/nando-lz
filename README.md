@@ -338,6 +338,7 @@ flowchart TD
     CI -->|verde + escopo confiável| AM[Árbitro autônomo]
     AM --> MAIN[main protegida]
     MAIN --> DEPLOY[Deploy automático]
+    DEPLOY -->|AUTO + produção saudável| REL[GitHub Release PATCH]
 ```
 
 | Camada                   | Responsável                                           | Papel                                                                                                    |
@@ -354,7 +355,7 @@ Atualizações fora do escopo AUTO permanecem em `REVIEW` ou `BLOCKED`: não rec
 
 ## Versionamento e releases
 
-O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da stack. Releases são **taggeadas manualmente** (`gh release create vX.Y.Z`) pelo mantenedor ou pelo agente ao fechar um conjunto relevante de mudanças — todo release aponta para um commit da `main` com **CI verde**, então dá para clonar sempre um estado conhecido-bom. Rollback = revert do PR de manutenção + tag de correção. Ver [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md).
+O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da stack. Cada atualização autônoma elegível cria automaticamente uma release `PATCH` somente depois de CI, deploy e health check verdes. Marcos `MINOR`/`MAJOR` ou correções excepcionais continuam com tag explícita, mas passam pela mesma prova de produção. Todo release aponta para um estado conhecido-bom; rollback = revert do PR de manutenção + tag de correção. Ver [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md).
 
 ---
 

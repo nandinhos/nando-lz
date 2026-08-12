@@ -1,0 +1,129 @@
+name: Publish release
+
+on:
+  workflow_run:
+    workflows: [Deploy production]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag SemVer a publicar (por exemplo, v1.5.1)
+        required: true
+        type: string
+      target_sha:
+        description: SHA completo já implantado; vazio usa a main atual
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    name: Publicar release após produção saudável
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.target_sha || github.sha }}
+      REQUESTED_TAG: ${{ inputs.tag }}
+
+    steps:
+      - name: Comprovar deploy e decidir a versão
+        id: release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          target_sha="$(gh api "repos/$REPOSITORY/commits/$DEPLOY_SHA" --jq .sha)"
+          relation="$(gh api "repos/$REPOSITORY/compare/$target_sha...main" --jq .status)"
+          [[ "$relation" = ahead || "$relation" = identical ]]
+
+          deploy_run="$(gh api --paginate "repos/$REPOSITORY/actions/workflows/deploy-production.yml/runs?per_page=100" \
+            --jq ".workflow_runs[] | select(.head_sha == \"$target_sha\" and .conclusion == \"success\") | .id" \
+            | head -n 1)"
+          [ -n "$deploy_run" ] || {
+            echo "Nenhum deploy bem-sucedido foi encontrado para $target_sha." >&2
+            exit 1
+          }
+
+          source_pr=''
+          if [ "${{ github.event_name }}" = workflow_run ]; then
+            source_pr="$(gh api "repos/$REPOSITORY/commits/$target_sha/pulls" \
+              --jq '[.[] | select(.merged_at != null and ([.labels[].name] | index("autonomous-candidate"))) | .number] | first // empty')"
+            if [ -z "$source_pr" ]; then
+              echo 'publish=false' >> "$GITHUB_OUTPUT"
+              echo 'O deploy não veio de uma atualização autônoma elegível; nenhuma release foi criada.'
+              exit 0
+            fi
+          fi
+
+          if [ -n "$REQUESTED_TAG" ]; then
+            tag="$REQUESTED_TAG"
+          else
+            latest="$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" --jq '
+              [.[]
+                | select(.draft == false and .prerelease == false)
+                | .tag_name
+                | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+              | sort_by(ltrimstr("v") | split(".") | map(tonumber))
+              | last // "v0.0.0"
+            ' )"
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            tag="v${major}.${minor}.$((patch + 1))"
+          fi
+
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Tag inválida: $tag. Use vMAJOR.MINOR.PATCH." >&2
+            exit 1
+          }
+          if gh api "repos/$REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "A tag $tag já existe; a publicação é idempotente e não será repetida." >&2
+            exit 1
+          fi
+
+          {
+            echo 'publish=true'
+            echo "tag=$tag"
+            echo "target_sha=$target_sha"
+            echo "deploy_run=$deploy_run"
+            echo "source_pr=$source_pr"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Criar tag e GitHub Release
+        if: steps.release.outputs.publish == 'true'
+        shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          TARGET_SHA: ${{ steps.release.outputs.target_sha }}
+          DEPLOY_RUN: ${{ steps.release.outputs.deploy_run }}
+          SOURCE_PR: ${{ steps.release.outputs.source_pr }}
+        run: |
+          set -Eeuo pipefail
+
+          notes="Release publicada somente após o deploy bem-sucedido do commit $TARGET_SHA."
+          notes+=$'\n\n'
+          notes+="- Deploy validado: https://github.com/$REPOSITORY/actions/runs/$DEPLOY_RUN"
+          if [ -n "$SOURCE_PR" ]; then
+            notes+=$'\n'
+            notes+="- Atualização autônoma validada: #$SOURCE_PR"
+          fi
+
+          gh release create "$TAG" \
+            --repo "$REPOSITORY" \
+            --target "$TARGET_SHA" \
+            --title "nando-lz $TAG" \
+            --generate-notes \
+            --notes "$notes"

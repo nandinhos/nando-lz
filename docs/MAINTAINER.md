@@ -78,4 +78,4 @@ O que faz:
 1. O ciclo `auto-update.yml` roda toda segunda 08:00 (America/Sao_Paulo), e o Dependabot confere Actions aos sábados.
 2. Atualizações AUTO só prosseguem quando os gates locais, o CI e o árbitro de escopo estiverem verdes; o merge por rebase e o deploy ocorrem sem revisão humana.
 3. Alterações de major, manifest, código, migration ou qualquer escopo não previsto são bloqueadas e registradas para tratamento excepcional.
-4. Tags/release SemVer continuam manuais ([VERSION_POLICY.md](VERSION_POLICY.md)); elas nomeiam marcos, não condicionam a publicação segura.
+4. Depois de uma atualização AUTO chegar à produção saudável, `Publish release` cria a próxima release `PATCH` automaticamente. Marcos excepcionais usam o mesmo workflow com tag explícita e nunca ignoram a evidência de deploy; ver [VERSION_POLICY.md](VERSION_POLICY.md).

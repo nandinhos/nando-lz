@@ -16,9 +16,9 @@ Arquivo `.github/dependabot.yml`:
 
 Workflow `auto-update.yml`. Atualiza Composer/NPM dentro das constraints, roda `scripts/update-stack.sh`, gera relatório e abre uma PR candidata apenas quando [scripts/assert-autonomous-update.sh](../scripts/assert-autonomous-update.sh) comprova que o diff contém exclusivamente lock files, README sincronizado e o relatório verde.
 
-### Camada 3 — CI, árbitro e deploy
+### Camada 3 — CI, árbitro, deploy e release
 
-`ci.yml` é o gate universal com PHP 8.3, PHP 8.4 e `Dependency audit`. `autonomous-merge.yml` consome somente metadados e diff pela API, não executa o código de uma PR, e pede merge por rebase com o SHA da cabeça fixado. A branch protection mantém a `main` fechada até os checks exigidos passarem; `deploy-production.yml` publica automaticamente apenas depois do CI verde na `main`.
+`ci.yml` é o gate universal com PHP 8.3, PHP 8.4 e `Dependency audit`. `autonomous-merge.yml` consome somente metadados e diff pela API, não executa o código de uma PR, reaplica `autonomous-candidate` depois de revalidar o escopo e pede merge por rebase com o SHA da cabeça fixado. A branch protection mantém a `main` fechada até os checks exigidos passarem; `deploy-production.yml` publica automaticamente apenas depois do CI verde na `main`; `publish-release.yml` cria a próxima GitHub Release `PATCH` depois do deploy bem-sucedido.
 
 ## Classes de mudança (§7.2)
 
@@ -54,6 +54,7 @@ flowchart TD
 11. Gerar o relatório.
 12. Commit + abrir PR com o relatório no corpo.
 13. O árbitro pede merge por rebase somente para AUTO com SHA fixado, `PHP 8.3`, `PHP 8.4`, `Dependency audit` e todos os checks verdes; qualquer falha/risco, item REVIEW ou BLOCKED nunca é mesclado.
+14. Depois de CI, deploy e health check de produção concluídos, `publish-release.yml` cria a próxima GitHub Release `PATCH` do candidato marcado como `autonomous-candidate`. A tag aponta para o SHA implantado e não é recriada em reexecuções.
 
 ## Cadência e cron (§7.1)
 

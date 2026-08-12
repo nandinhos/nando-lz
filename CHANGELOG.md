@@ -4,6 +4,18 @@ Todas as mudanças relevantes deste projeto são documentadas aqui.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto adota [Versionamento Semântico](https://semver.org/lang/pt-BR/) próprio, independente das versões da stack.
 
+## [1.6.0] - 2026-08-12
+
+### Corrigido
+
+- O monitor de atualização passa a usar exclusivamente o veredito explícito `Resultado geral` do relatório, impedindo que um gate individual verde mascare um ciclo falho.
+- O build de assets não depende mais de provedores externos de fontes, eliminando falhas transitórias de rede durante CI e deploy.
+
+### Alterado
+
+- Atualizações autônomas válidas agora recebem uma GitHub Release `PATCH` automática somente depois do CI, deploy atômico e health check de produção.
+- O ciclo de manutenção passa a incluir merge seguro, deploy atômico e publicação de release como uma única cadeia comprovável.
+
 ## [1.5.0] - 2026-07-02
 
 ### Adicionado
@@ -90,3 +102,4 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 [1.1.0]: https://github.com/nandinhos/nando-lz/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/nandinhos/nando-lz/releases/tag/v1.0.0
+[1.6.0]: https://github.com/nandinhos/nando-lz/compare/v1.5.0...v1.6.0
