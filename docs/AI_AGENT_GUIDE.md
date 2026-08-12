@@ -33,7 +33,7 @@ Este documento é o **contrato** que qualquer agente de IA (ou humano) deve segu
 10. Validar `POST /logout` (encerra sessão, regenera CSRF).
 11. Gerar o relatório do ciclo.
 12. Commit + abrir PR com o relatório no corpo.
-13. **Nunca fazer merge** com qualquer falha/risco, nem de itens REVIEW/BLOCKED.
+13. Não atribua `autonomous-candidate` se houver qualquer falha/risco; o árbitro só pode mesclar AUTO com escopo permitido e checks verdes. Itens REVIEW/BLOCKED nunca entram na `main` automaticamente.
 
 Detalhes das classes de mudança, camadas de automação e critérios de merge automático: `AUTO_UPDATE_POLICY.md`.
 
@@ -42,7 +42,7 @@ Detalhes das classes de mudança, camadas de automação e critérios de merge a
 - **Docker sem `env_file:`.** O `.env` chega ao Laravel via bind-mount. Injetá-lo como ambiente real do container congela valores e faz os `<env>` do `phpunit.xml` serem ignorados — bug crítico real: `php artisan test` no container apagava o banco de dev. Nunca adicionar `env_file:` ao compose.
 - **Banco de teste no Docker.** `docker/pg-init.sql` cria `nando_lz_testing` na primeira inicialização do volume `pgdata`; `docker compose exec app php artisan test` é seguro e isolado.
 - **Container não-root.** O app roda como usuário `app` com UID configurável (`build.args.UID`, padrão 1000) — não reintroduzir root no container nem quebrar a editabilidade do bind-mount no host.
-- **PR do ciclo.** O `auto-update.yml` não abre PR se só o relatório mudou; usa `--force-with-lease` (re-run seguro no mesmo dia); cria-ou-atualiza o PR; e dispara `gh workflow run ci.yml --ref <branch>` após abrir (pushes com `GITHUB_TOKEN` não disparam workflows — sem isso o PR fica preso em "Expected").
+- **PR do ciclo.** O `auto-update.yml` não abre PR se só o relatório mudou; usa `--force-with-lease` (re-run seguro no mesmo dia); cria-ou-atualiza o PR; valida o escopo com `assert-autonomous-update.sh` e dispara `gh workflow run ci.yml --ref <branch>` após abrir (pushes com `GITHUB_TOKEN` não disparam workflows — sem isso o PR fica preso em "Expected").
 - **Renovate no sábado**, agente na segunda — não realinhar as agendas para o mesmo dia.
 - **`superadmin:create`** atribui `email_verified_at` explicitamente; o campo fica fora do `$fillable` por design.
 
