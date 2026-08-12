@@ -134,7 +134,7 @@ jobs:
             if gh pr view "$pr" --repo "$REPOSITORY" --json labels --jq '[.labels[].name] | index("autonomy-blocked") != null' | grep --fixed-strings --quiet true; then
               return
             fi
-            gh pr edit "$pr" --repo "$REPOSITORY" --add-label autonomy-blocked
+            gh api --method POST "repos/$REPOSITORY/issues/$pr/labels" -f 'labels[]=autonomy-blocked' >/dev/null
             gh issue create --repo "$REPOSITORY" \
               --title "autonomy-blocked: PR #$pr" \
               --label autonomy-blocked \
@@ -147,11 +147,11 @@ jobs:
               return
             fi
 
-            gh pr edit "$pr" --repo "$REPOSITORY" --remove-label autonomy-blocked
+            gh api --method DELETE "repos/$REPOSITORY/issues/$pr/labels/autonomy-blocked" >/dev/null
             while IFS= read -r issue; do
               [ -n "$issue" ] || continue
               gh api --method PATCH "repos/$REPOSITORY/issues/$issue" -f state=closed >/dev/null
-            done < <(gh issue list --repo "$REPOSITORY" --state open --search "autonomy-blocked: PR #$pr in:title" --json number --jq '.[].number')
+            done < <(gh api "search/issues?q=repo:$REPOSITORY+is:issue+is:open+in:title+autonomy-blocked:+PR+%23$pr" --jq '.items[].number')
           }
 
           prs=()
