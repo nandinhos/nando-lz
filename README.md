@@ -2,19 +2,21 @@
 
 [![CI](https://github.com/nandinhos/nando-lz/actions/workflows/ci.yml/badge.svg)](https://github.com/nandinhos/nando-lz/actions/workflows/ci.yml)
 [![Auto Update](https://github.com/nandinhos/nando-lz/actions/workflows/auto-update.yml/badge.svg)](https://github.com/nandinhos/nando-lz/actions/workflows/auto-update.yml)
+
 <!-- stack:badges:start -->
 ![Laravel](https://img.shields.io/badge/Laravel-13.25-FF2D20?logo=laravel)
 ![Filament](https://img.shields.io/badge/Filament-5.7-FFAA00)
 ![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4?logo=php)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
 <!-- stack:badges:end -->
+
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 <p align="center">
   <img src="docs/images/dashboard-ops.png" alt="Painel ops do nando-lz — dashboard com o identificador de build no rodapé da sidebar" width="100%">
 </p>
 
-Starter kit técnico **público** e *evergreen* para novos projetos **Laravel + Filament**: limpo, genérico, reproduzível e **permanentemente atualizado por automação**. Clone, rode um único script e tenha, em minutos, uma aplicação funcional na última versão estável e mutuamente compatível de toda a stack.
+Starter kit técnico **público** e _evergreen_ para novos projetos **Laravel + Filament**: limpo, genérico, reproduzível e **permanentemente atualizado por automação**. Clone, rode um único script e tenha, em minutos, uma aplicação funcional na última versão estável e mutuamente compatível de toda a stack.
 
 > **É uma fundação técnica, não um produto.** A landing do starter existe apenas para divulgar e monitorar a base técnica; não há SaaS, checkout, pagamento, convite, multitenancy nem qualquer regra de negócio. Só estrutura conhecida-boa para você construir por cima.
 
@@ -47,7 +49,7 @@ Starter kit técnico **público** e *evergreen* para novos projetos **Laravel + 
 Manter um projeto Laravel + Filament sempre atualizado é trabalhoso: as versões precisam ser **mutuamente compatíveis**, e o Filament costuma ser o pacote que limita qual major do Laravel se pode usar. O `nando-lz` resolve isso de duas formas:
 
 1. **Base conhecida-boa** — um estado sempre estável, testado e taggeado (SemVer), do qual qualquer projeto novo pode partir.
-2. **Automação em três camadas** — Renovate (patch/minor), um agente de IA (majors e decisões) e CI (gate universal) mantêm a stack atualizada sem merge cego. Ver [automação](#automação-de-manutenção).
+2. **Automação em três camadas** — Dependabot para referências de GitHub Actions, ciclo controlado para dependências e CI/árbitro para evidências independentes mantêm a stack atualizada sem merge cego. Ver [automação](#automação-de-manutenção).
 
 ---
 
@@ -64,7 +66,7 @@ Manter um projeto Laravel + Filament sempre atualizado é trabalhoso: as versõe
 - ✅ **Banco de teste isolado no Docker** (`nando_lz_testing`, criado por `docker/pg-init.sql`) — `php artisan test` no container nunca toca o banco de dev.
 - ✅ **Identificador de build** no rodapé da sidebar de todos os painéis.
 - ✅ **Resolvedor de compatibilidade** (`resolve-stack.sh`) e **ciclo de atualização** (`update-stack.sh`).
-- ✅ **CI/CD**: workflows `ci`, `auto-update` e `compat-watch` + configuração do Renovate.
+- ✅ **CI/CD**: workflows `ci`, `auto-update`, `autonomous-merge`, `compat-watch` e Deploy production + configuração do Dependabot.
 - ✅ **Documentação** para humanos e para agentes de IA, e relatórios versionados de cada ciclo.
 
 ---
@@ -89,13 +91,13 @@ O instalador é interativo e também aceita o modo direto: `./scripts/install.sh
 
 **Comandos do dia a dia:**
 
-| Ação | Local | Docker |
-|------|-------|--------|
-| Subir a aplicação | `php artisan serve` | `docker compose up -d` |
-| Migrations | `php artisan migrate` | `docker compose exec app php artisan migrate` |
-| Testes | `php artisan test` | `docker compose exec app php artisan test` |
-| Primeiro admin | `php artisan superadmin:create` | `docker compose exec app php artisan superadmin:create` |
-| Assets (HMR) | `npm run dev` | — |
+| Ação              | Local                           | Docker                                                  |
+| ----------------- | ------------------------------- | ------------------------------------------------------- |
+| Subir a aplicação | `php artisan serve`             | `docker compose up -d`                                  |
+| Migrations        | `php artisan migrate`           | `docker compose exec app php artisan migrate`           |
+| Testes            | `php artisan test`              | `docker compose exec app php artisan test`              |
+| Primeiro admin    | `php artisan superadmin:create` | `docker compose exec app php artisan superadmin:create` |
+| Assets (HMR)      | `npm run dev`                   | —                                                       |
 
 No modo Docker a porta pública é **alta por padrão** (`18000`) para evitar conflitos — acesse `http://localhost:18000`. No modo Local, `php artisan serve` usa `http://127.0.0.1:8000`.
 
@@ -147,25 +149,25 @@ O `composer.json` fixa `config.platform.php = 8.3.0`, garantindo que o lock reso
 
 Apenas estrutura inicial, sem domínio de negócio. Cada painel tem login (sem registro público), página de perfil e 2FA opcional, e exibe o identificador de build no rodapé da sidebar.
 
-| Painel | Rota | Tema | Propósito futuro |
-|--------|------|------|------------------|
-| `ops` | `/ops` | Blue | Administração global |
-| `admin` | `/admin` | Amber | Aplicação principal (painel default) |
-| `support` | `/support` | Emerald | Suporte e manutenção |
+| Painel    | Rota       | Tema    | Propósito futuro                     |
+| --------- | ---------- | ------- | ------------------------------------ |
+| `ops`     | `/ops`     | Blue    | Administração global                 |
+| `admin`   | `/admin`   | Amber   | Aplicação principal (painel default) |
+| `support` | `/support` | Emerald | Suporte e manutenção                 |
 
-| `/ops/login` — Blue | `/admin/login` — Amber | `/support/login` — Emerald |
-|:--:|:--:|:--:|
+|                                  `/ops/login` — Blue                                   |                                   `/admin/login` — Amber                                    |                                    `/support/login` — Emerald                                     |
+| :------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------: |
 | <img src="docs/images/login-ops.png" width="260" alt="Login do painel ops, tema Blue"> | <img src="docs/images/login-admin.png" width="260" alt="Login do painel admin, tema Amber"> | <img src="docs/images/login-support.png" width="260" alt="Login do painel support, tema Emerald"> |
 
 <details>
 <summary><strong>Mais screenshots</strong> — dashboards admin/support e página de perfil</summary>
 
-| `/admin` | `/support` |
-|:--:|:--:|
+|                                        `/admin`                                         |                                         `/support`                                          |
+| :-------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: |
 | <img src="docs/images/dashboard-admin.png" width="400" alt="Dashboard do painel admin"> | <img src="docs/images/dashboard-support.png" width="400" alt="Dashboard do painel support"> |
 
-| Página de perfil (com seção de 2FA opcional) |
-|:--:|
+|                   Página de perfil (com seção de 2FA opcional)                    |
+| :-------------------------------------------------------------------------------: |
 | <img src="docs/images/profile.png" width="400" alt="Página de perfil do usuário"> |
 
 </details>
@@ -219,10 +221,10 @@ docker/
 scripts/                                  Instalação e manutenção (ver abaixo) — preservados pelo app:setup
 tests/Feature/SanityTest.php              Suíte Pest de sanidade (30 testes, state-aware)
 docs/                                     Documentação + docs/reports/auto-update/ (relatórios de ciclo)
-.github/workflows/                        ci.yml · auto-update.yml · compat-watch.yml
+.github/workflows/                        ci.yml · auto-update.yml · autonomous-merge.yml · compat-watch.yml · deploy-production.yml
 Dockerfile · docker-compose.yml           Modo Docker (container não-root, restart: unless-stopped)
 .dockerignore                             Contexto de build reduzido a poucos KB
-renovate.json                             Camada 1 da automação
+.github/dependabot.yml                    Camada 1 da automação
 .env.example                              PostgreSQL por padrão
 ```
 
@@ -232,17 +234,17 @@ renovate.json                             Camada 1 da automação
 
 Todos em `scripts/`, **idempotentes** e sem `git push` embutido. Todos usam `set -euo pipefail` — exceto `update-stack.sh`, que dispensa o `-e` **de propósito** para coletar falhas de todos os gates e ainda gerar o relatório do ciclo.
 
-| Script | Função |
-|--------|--------|
-| `install.sh` | Entrada única — menu `1) Local  2) Docker` |
-| `install-local.sh` | Instalação Local (sem Docker) |
-| `install-docker.sh` | Instalação via Docker (sem PHP/PostgreSQL locais); espera até 5 min no primeiro boot; mensagem final com URL clicável (OSC 8) e fallback em texto puro |
-| `check-requirements.sh` | Valida versão do PHP, `ext-intl`, presença de Composer/Node/psql e permissões (exit codes 10–15) |
-| `bootstrap-app.sh` | `.env`, chave, migrations e build — idempotente (`--no-build`, respeita `ARTISAN`) |
-| `reset-app.sh` | Recria o banco limpo (destrutivo; `--force`) |
-| `test-app.sh` | Roda o Pest |
-| `resolve-stack.sh` | Resolvedor de compatibilidade (§4.1), saída JSON, timeouts de rede explícitos |
-| `update-stack.sh` | Ciclo do agente (§7): gates + relatório (`--dry-run`); **não faz push** |
+| Script                  | Função                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `install.sh`            | Entrada única — menu `1) Local  2) Docker`                                                                                                             |
+| `install-local.sh`      | Instalação Local (sem Docker)                                                                                                                          |
+| `install-docker.sh`     | Instalação via Docker (sem PHP/PostgreSQL locais); espera até 5 min no primeiro boot; mensagem final com URL clicável (OSC 8) e fallback em texto puro |
+| `check-requirements.sh` | Valida versão do PHP, `ext-intl`, presença de Composer/Node/psql e permissões (exit codes 10–15)                                                       |
+| `bootstrap-app.sh`      | `.env`, chave, migrations e build — idempotente (`--no-build`, respeita `ARTISAN`)                                                                     |
+| `reset-app.sh`          | Recria o banco limpo (destrutivo; `--force`)                                                                                                           |
+| `test-app.sh`           | Roda o Pest                                                                                                                                            |
+| `resolve-stack.sh`      | Resolvedor de compatibilidade (§4.1), saída JSON, timeouts de rede explícitos                                                                          |
+| `update-stack.sh`       | Ciclo do agente (§7): gates + relatório (`--dry-run`); **não faz push**                                                                                |
 
 ---
 
@@ -324,30 +326,29 @@ Detalhes completos em [docs/DOCKER.md](docs/DOCKER.md) e [docs/INSTALLATION.md](
 
 ## Automação de manutenção
 
-Manutenção em **três camadas** (nenhuma faz merge sem CI verde):
+Manutenção em **três camadas** (nenhuma atualização entra sem os gates verdes):
 
 ```mermaid
 flowchart TD
-    RV[Camada 1 - Renovate - sábado] -->|PR de patch-minor só no lock| CI
-    AG[Camada 2 - Agente de IA - segunda] --> GT[Gates do §7.3]
+    DB[Camada 1 - Dependabot - sábado] -->|troca literal de GitHub Action| CI
+    AG[Camada 2 - Ciclo automático - segunda] --> GT[Gates do §7.3]
     GT --> PR[PR classificado - AUTO ou REVIEW]
     GT -->|incompatibilidade upstream| ISS[Issue rastreadora - BLOCKED]
     PR --> CI[Camada 3 - CI - gate universal]
-    CI -->|verde| MH[Merge humano]
-    MH --> MAIN[main protegida]
-    MAIN --> REL[Release SemVer manual]
+    CI -->|verde + escopo confiável| AM[Árbitro autônomo]
+    AM --> MAIN[main protegida]
+    MAIN --> DEPLOY[Deploy automático]
 ```
 
-| Camada | Responsável | Papel |
-|--------|-------------|-------|
-| 1 — Renovate | `renovate.json` | PRs de **patch/minor** aos sábados (só o lock, preserva constraints); majors de composer/npm ignorados |
-| 2 — Agente de IA | `auto-update.yml` | Ciclo semanal (segunda): resolve, aplica, valida, **abre PR** — decide e documenta, **nunca faz merge** |
-| 3 — CI | `ci.yml` + branch protection | **Gate universal**: nada entra na `main` sem verde |
+| Camada                   | Responsável                                           | Papel                                                                                                    |
+| ------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 1 — Dependabot           | `.github/dependabot.yml`                              | PRs semanais para trocas literais de referências de GitHub Actions                                       |
+| 2 — Ciclo automático     | `auto-update.yml`                                     | Ciclo semanal: resolve, atualiza locks, valida e abre PR candidata com relatório                         |
+| 3 — CI, árbitro e deploy | `ci.yml` + `autonomous-merge.yml` + branch protection | Exige quatro gates; o árbitro revalida origem/diff e mescla apenas AUTO; o deploy publica a `main` verde |
 
 As mudanças são classificadas em **AUTO** (patch/minor/lock — PR, merge automático só sob condições estritas), **REVIEW** (majors, troca de pacote, mudança estrutural — `needs-human-approval`) e **BLOCKED** (incompatibilidade upstream — sem PR, issue rastreadora). Cada ciclo gera um relatório em `docs/reports/auto-update/`. Detalhes em [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md).
 
-> [!WARNING]
-> O Renovate exige **habilitar o app no repositório, no GitHub**. Sem isso, a Camada 1 fica inerte e nenhum PR é aberto.
+Atualizações fora do escopo AUTO permanecem em `REVIEW` ou `BLOCKED`: não recebem merge automático e produzem a rastreabilidade necessária para tratamento excepcional.
 
 ---
 
@@ -359,19 +360,19 @@ O starter tem **SemVer próprio** (`v1.0.0`, …), independente das versões da 
 
 ## Documentação
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Visão geral dos dois modos |
-| [docs/LOCAL.md](docs/LOCAL.md) | Modo Local em detalhe |
-| [docs/DOCKER.md](docs/DOCKER.md) | Modo Docker em detalhe |
-| [docs/STACK.md](docs/STACK.md) | Stack, resolução de compatibilidade, build id, pgvector, 2FA |
-| [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md) | Política de versões, SemVer, releases e rollback |
-| [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md) | Automação em 3 camadas, classes, gates |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problemas comuns |
-| [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md) | Contrato operacional do agente de manutenção |
-| [docs/MAINTAINER.md](docs/MAINTAINER.md) | Papéis mantenedor × usuário, wizard `app:setup`, automação |
-| [docs/images/README.md](docs/images/README.md) | Convenções para screenshots da documentação |
-| [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
+| Documento                                                | Conteúdo                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------ |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md)             | Visão geral dos dois modos                                   |
+| [docs/LOCAL.md](docs/LOCAL.md)                           | Modo Local em detalhe                                        |
+| [docs/DOCKER.md](docs/DOCKER.md)                         | Modo Docker em detalhe                                       |
+| [docs/STACK.md](docs/STACK.md)                           | Stack, resolução de compatibilidade, build id, pgvector, 2FA |
+| [docs/VERSION_POLICY.md](docs/VERSION_POLICY.md)         | Política de versões, SemVer, releases e rollback             |
+| [docs/AUTO_UPDATE_POLICY.md](docs/AUTO_UPDATE_POLICY.md) | Automação em 3 camadas, classes, gates                       |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)       | Problemas comuns                                             |
+| [docs/AI_AGENT_GUIDE.md](docs/AI_AGENT_GUIDE.md)         | Contrato operacional do agente de manutenção                 |
+| [docs/MAINTAINER.md](docs/MAINTAINER.md)                 | Papéis mantenedor × usuário, wizard `app:setup`, automação   |
+| [docs/images/README.md](docs/images/README.md)           | Convenções para screenshots da documentação                  |
+| [CHANGELOG.md](CHANGELOG.md)                             | Histórico de versões                                         |
 
 ---
 

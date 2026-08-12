@@ -14,21 +14,21 @@ flowchart LR
     end
 ```
 
-- **Mantenedor** (`nandinhos`, dono de `nando-lz`): mantém a stack sempre atualizada. É dele a **automação de manutenção** — ela existe para manter o *starter* evergreen, não os projetos derivados.
+- **Mantenedor** (`nandinhos`, dono de `nando-lz`): mantém a stack sempre atualizada. É dele a **automação de manutenção** — ela existe para manter o _starter_ evergreen, não os projetos derivados.
 - **Usuário**: clona o `nando-lz` para começar um projeto novo, roda o wizard `app:setup` (rebrand) e **desanexa** a automação do starter. Fica só com o CI para os testes do próprio projeto.
 
 ## Automação de manutenção (só do mantenedor)
 
 Estes artefatos mantêm o **starter** atualizado e **não** fazem sentido num projeto derivado:
 
-| Artefato | Papel |
-|----------|-------|
-| `.github/workflows/auto-update.yml` | Ciclo semanal do agente (§7): resolve, aplica patch/minor e abre PR candidata |
+| Artefato                                 | Papel                                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| `.github/workflows/auto-update.yml`      | Ciclo semanal do agente (§7): resolve, aplica patch/minor e abre PR candidata           |
 | `.github/workflows/autonomous-merge.yml` | Árbitro sem checkout de PR: revalida autoria, escopo e checks antes do merge por rebase |
-| `.github/workflows/compat-watch.yml` | Vigia a janela de incompatibilidade Filament × Laravel (§4.2) |
-| `.github/dependabot.yml` | Camada 1: PRs de atualização literal de GitHub Actions |
-| `scripts/resolve-stack.sh` | Resolvedor de compatibilidade (§4.1) |
-| `scripts/update-stack.sh` | Ponto de entrada do ciclo (§7.3) |
+| `.github/workflows/compat-watch.yml`     | Vigia a janela de incompatibilidade Filament × Laravel (§4.2)                           |
+| `.github/dependabot.yml`                 | Camada 1: PRs de atualização literal de GitHub Actions                                  |
+| `scripts/resolve-stack.sh`               | Resolvedor de compatibilidade (§4.1)                                                    |
+| `scripts/update-stack.sh`                | Ponto de entrada do ciclo (§7.3)                                                        |
 
 O `ci.yml` **não** é maintenance — é o gate universal de qualquer projeto e sempre permanece.
 
@@ -63,7 +63,7 @@ O que faz:
 1. **Preview** — sem `--preview`, o wizard ainda mostra o plano (arquivos a reescrever, arquivos a remover, porta, git) e pede confirmação antes de aplicar. Com `--preview`, só mostra e sai.
 2. **Rebrand** — reescreve identidade em todo o projeto: `APP_NAME`, pacote Composer derivado automaticamente do nome da aplicação, banco de dados (e o banco de teste `*_testing`), URL do repositório quando houver, títulos e referências. Se o repositório remoto ainda não existir, o wizard permite continuar e deixa `APP_GITHUB_URL` vazio para preenchimento posterior. Depois do rebrand, `/` mostra a welcome operacional do projeto, não a landing de divulgação do starter.
 3. **Porta sem conflito** — detecta portas ativas (banco, sistema, outros serviços) via bind de socket e sugere uma **porta alta livre** para o `APP_PORT`. O `install-docker.sh` faz a mesma checagem antes do `up`.
-4. **Automação silenciosa** — remove a automação do starter e mantém só o CI do projeto derivado. Não há escolha de Renovate/mantenedor no onboarding.
+4. **Automação silenciosa** — remove a automação do starter e mantém só o CI do projeto derivado. Não há escolha de Dependabot/mantenedor no onboarding.
 5. **Reset git** (opcional, **opt-in**) — recomeça o histórico com um commit inicial. Por padrão o wizard **não** reseta: as mudanças ficam no working tree e são reversíveis com `git restore .`.
 6. **Re-hash do lock** — roda `composer update --lock` para o `composer validate --strict` do CI seguir verde após a troca de nome do pacote.
 
