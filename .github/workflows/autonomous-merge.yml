@@ -40,7 +40,14 @@ jobs:
 
           ensure_label() {
             local name="$1" color="$2" description="$3"
-            gh label create "$name" --repo "$REPOSITORY" --color "$color" --description "$description" --force
+            gh api --method POST "repos/$REPOSITORY/labels" \
+              -f name="$name" \
+              -f color="$color" \
+              -f description="$description" >/dev/null 2>&1 ||
+              gh api --method PATCH "repos/$REPOSITORY/labels/$name" \
+                -f new_name="$name" \
+                -f color="$color" \
+                -f description="$description" >/dev/null
           }
 
           ensure_label auto-update 0e8a16 'Atualização recorrente da stack'
@@ -141,7 +148,7 @@ jobs:
             candidate_type=''
             if [ "$author" = 'github-actions[bot]' ] && [[ "$branch" =~ ^maintenance/auto-update-[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
               allowed_lock_candidate "$pr" && candidate_type='locks'
-            elif [ "$author" = 'dependabot[bot]' ] && [[ "$branch" =~ ^dependabot/ ]]; then
+            elif { [ "$author" = 'dependabot[bot]' ] || [ "$author" = 'app/dependabot' ]; } && [[ "$branch" =~ ^dependabot/ ]]; then
               allowed_actions_candidate "$pr" && candidate_type='actions'
             else
               continue
