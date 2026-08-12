@@ -33,6 +33,12 @@ jobs:
       HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
 
     steps:
+      - name: Checkout confiável da main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+
       - name: Selecionar, validar e mesclar candidatos seguros
         shell: bash
         run: |
