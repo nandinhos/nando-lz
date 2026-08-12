@@ -3,7 +3,7 @@
 [![CI](https://github.com/nandinhos/nando-lz/actions/workflows/ci.yml/badge.svg)](https://github.com/nandinhos/nando-lz/actions/workflows/ci.yml)
 [![Auto Update](https://github.com/nandinhos/nando-lz/actions/workflows/auto-update.yml/badge.svg)](https://github.com/nandinhos/nando-lz/actions/workflows/auto-update.yml)
 <!-- stack:badges:start -->
-![Laravel](https://img.shields.io/badge/Laravel-13.24-FF2D20?logo=laravel)
+![Laravel](https://img.shields.io/badge/Laravel-13.25-FF2D20?logo=laravel)
 ![Filament](https://img.shields.io/badge/Filament-5.7-FFAA00)
 ![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4?logo=php)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
@@ -130,7 +130,7 @@ Travada e verificada em 2026-07-01. **O Filament é o pacote limitante:** a majo
 <!-- stack:table:start -->
 | Componente | Versão | Observação |
 |-----------|--------|------------|
-| Laravel | 13.24.0 | major derivada do Filament |
+| Laravel | 13.25.0 | major derivada do Filament |
 | Filament | 5.7.6 | pacote limitante |
 | Livewire | 4.4.0 | transitivo via Filament — **nunca fixar direto** |
 | Pest | 4.7.8 | framework único de testes |
