@@ -201,5 +201,8 @@ jobs:
             fi
 
             [ "$merge_state" = CLEAN ] || continue
-            gh pr merge "$pr" --repo "$REPOSITORY" --rebase --delete-branch --match-head-commit "$head_sha"
+            gh api --method PUT "repos/$REPOSITORY/pulls/$pr/merge" \
+              -f sha="$head_sha" \
+              -f merge_method=rebase >/dev/null
+            gh api --method DELETE "repos/$REPOSITORY/git/refs/heads/$branch" >/dev/null || true
           done
