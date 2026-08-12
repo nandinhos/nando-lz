@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ $stack['name'] }} — Painéis</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -16,18 +13,18 @@
     background:
       radial-gradient(circle at 18% 12%, rgba(37, 207, 228, .22), transparent 32rem),
       linear-gradient(180deg, #0b1832 0%, #070e1c 44%, #07101f 100%);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: ui-sans-serif, system-ui, sans-serif;
   }
   .shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
   header { padding: 26px 0 18px; }
   .brand { display: flex; align-items: center; gap: 10px; color: #e7eef9; text-decoration: none; }
   .gem { width: 16px; height: 16px; transform: rotate(45deg); border-radius: 3px; background: #25cfe4; box-shadow: 0 0 18px rgba(37, 207, 228, .55); }
-  .brand span:last-child { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; }
+  .brand span:last-child { font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 19px; }
   main { padding: 42px 0 64px; }
   .hero { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(300px, .92fr); gap: clamp(28px, 5vw, 60px); align-items: center; }
   .badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 999px; color: #25cfe4; border: 1px solid rgba(37, 207, 228, .28); background: rgba(37, 207, 228, .10); font-size: 12px; font-weight: 600; }
   .badge i { width: 7px; height: 7px; border-radius: 50%; background: #25cfe4; }
-  h1 { margin: 22px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 3.95rem; line-height: 1.04; letter-spacing: 0; }
+  h1 { margin: 22px 0 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 3.95rem; line-height: 1.04; letter-spacing: 0; }
   .lead { margin: 20px 0 0; max-width: 56ch; color: #9eb1cf; font-size: 1.08rem; line-height: 1.65; }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; border-radius: 8px; color: #04121f; background: #25cfe4; text-decoration: none; font-weight: 700; }
@@ -40,15 +37,15 @@
     box-shadow: 0 28px 70px -44px rgba(0,0,0,.75);
   }
   .panel-card { padding: 18px; text-decoration: none; color: #e7eef9; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-  .panel-card strong { font-family: 'Space Grotesk', sans-serif; font-size: 1.08rem; }
+  .panel-card strong { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1.08rem; }
   .panel-card span { color: #93a8c8; font-size: .94rem; }
-  .panel-card code { color: #25cfe4; font-family: 'JetBrains Mono', monospace; font-size: .9rem; }
+  .panel-card code { color: #25cfe4; font-family: ui-monospace, monospace; font-size: .9rem; }
   .section { margin-top: 46px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .7fr); gap: 18px; align-items: start; }
   .manual { padding: 24px; }
-  .manual h2, .status h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 1.35rem; }
+  .manual h2, .status h2 { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 1.35rem; }
   .steps { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
   .steps li { padding: 14px 0; border-top: 1px solid rgba(140,180,230,.12); color: #cdd9ec; line-height: 1.55; }
-  .steps code, .status code { font-family: 'JetBrains Mono', monospace; color: #25cfe4; }
+  .steps code, .status code { font-family: ui-monospace, monospace; color: #25cfe4; }
   .status { padding: 24px; }
   .kv { margin-top: 18px; display: grid; gap: 10px; }
   .kv div { display: flex; justify-content: space-between; gap: 16px; color: #93a8c8; font-size: .95rem; }
