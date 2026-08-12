@@ -85,7 +85,7 @@ jobs:
           }
 
           allowed_actions_candidate() {
-            local pr="$1" files patch line has_file=false
+            local pr="$1" files patch line has_file=false in_diff=false
             files="$(gh api --paginate "repos/$REPOSITORY/pulls/$pr/files?per_page=100" --jq '.[] | "\(.status)\t\(.filename)"')"
             while IFS=$'\t' read -r status path; do
               [ -n "$path" ] || continue
@@ -98,7 +98,12 @@ jobs:
             patch="$(gh pr diff "$pr" --repo "$REPOSITORY" --patch)"
             while IFS= read -r line; do
               case "$line" in
-                '+++'*|'---'*|'@@'*|'diff --git'*|'index '*|'') continue ;;
+                'diff --git '*) in_diff=true; continue ;;
+                *) [ "$in_diff" = true ] || continue ;;
+              esac
+
+              case "$line" in
+                '+++'*|'---'*|'@@'*|'index '*|'') continue ;;
                 ' '*) continue ;;
                 +*|-*)
                   [[ "$line" =~ ^[+-][[:space:]]*-[[:space:]]*uses:[[:space:]]*[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[A-Za-z0-9_.:-]+[[:space:]]*$ ]] || return 1
@@ -106,6 +111,8 @@ jobs:
                 *) return 1 ;;
               esac
             done <<< "$patch"
+
+            [ "$in_diff" = true ]
           }
 
           all_checks_green() {
@@ -132,6 +139,19 @@ jobs:
               --title "autonomy-blocked: PR #$pr" \
               --label autonomy-blocked \
               --body "A PR #$pr não foi mesclada automaticamente. Motivo: $reason. A automação preservou a main e o deploy de produção sem alteração."
+          }
+
+          clear_blocked() {
+            local pr="$1" issue
+            if ! gh pr view "$pr" --repo "$REPOSITORY" --json labels --jq '[.labels[].name] | index("autonomy-blocked") != null' | grep --fixed-strings --quiet true; then
+              return
+            fi
+
+            gh pr edit "$pr" --repo "$REPOSITORY" --remove-label autonomy-blocked
+            while IFS= read -r issue; do
+              [ -n "$issue" ] || continue
+              gh api --method PATCH "repos/$REPOSITORY/issues/$issue" -f state=closed >/dev/null
+            done < <(gh issue list --repo "$REPOSITORY" --state open --search "autonomy-blocked: PR #$pr in:title" --json number --jq '.[].number')
           }
 
           prs=()
@@ -164,6 +184,8 @@ jobs:
               mark_blocked "$pr" 'diff fora do escopo permitido'
               continue
             fi
+
+            clear_blocked "$pr"
 
             if ! all_checks_green "$pr"; then
               continue
