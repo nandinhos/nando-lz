@@ -206,7 +206,18 @@ jobs:
               if ! gh api --method PUT "repos/$REPOSITORY/pulls/$pr/update-branch" -f expected_head_sha="$head_sha" >/dev/null; then
                 mark_blocked "$pr" 'não foi possível rebasear sobre a main atual'
               else
-                gh api --method POST "repos/$REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref="$branch" >/dev/null
+                rebased_sha=''
+                for attempt in 1 2 3 4 5 6; do
+                  rebased_sha="$(gh pr view "$pr" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid)"
+                  [ "$rebased_sha" != "$head_sha" ] && break
+                  [ "$attempt" = 6 ] || sleep 5
+                done
+
+                if [ "$rebased_sha" = "$head_sha" ]; then
+                  mark_blocked "$pr" 'o rebase não publicou um novo commit dentro do prazo'
+                else
+                  gh api --method POST "repos/$REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref="$branch" >/dev/null
+                fi
               fi
               continue
             fi
