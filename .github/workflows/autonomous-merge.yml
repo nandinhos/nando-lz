@@ -192,10 +192,10 @@ jobs:
             fi
 
             if [ "$merge_state" = BEHIND ]; then
-              if ! gh pr update-branch "$pr" --repo "$REPOSITORY" --rebase; then
+              if ! gh api --method PUT "repos/$REPOSITORY/pulls/$pr/update-branch" -f expected_head_sha="$head_sha" >/dev/null; then
                 mark_blocked "$pr" 'não foi possível rebasear sobre a main atual'
               else
-                gh workflow run ci.yml --repo "$REPOSITORY" --ref "$branch"
+                gh api --method POST "repos/$REPOSITORY/actions/workflows/ci.yml/dispatches" -f ref="$branch" >/dev/null
               fi
               continue
             fi
