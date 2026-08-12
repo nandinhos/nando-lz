@@ -9,7 +9,7 @@ Problemas comuns e como resolver.
 - [`composer.lock` fora de sincronia](#composerlock-fora-de-sincronia)
 - [Senha recusada pelo `superadmin:create`](#senha-recusada-pelo-superadmincreate-fora-de-local)
 - [Banco de teste `nando_lz_testing` não existe](#banco-de-teste-nando_lz_testing-não-existe)
-- [Renovate não abre PRs](#renovate-não-abre-prs)
+- [Dependabot não abre PRs](#dependabot-não-abre-prs)
 
 ## `ext-intl` ausente
 
@@ -75,21 +75,21 @@ Os testes usam o banco `nando_lz_testing` (definido em `phpunit.xml`, pgsql, com
 
 - **Local:** crie-o uma vez antes de rodar `php artisan test`:
 
-  ```sql
-  CREATE DATABASE nando_lz_testing;
-  ```
+    ```sql
+    CREATE DATABASE nando_lz_testing;
+    ```
 
 - **Docker:** `docker/pg-init.sql` cria o banco automaticamente na **primeira inicialização** do volume `pgdata`. Se o seu volume é **pré-existente** (criado antes desse script), o init não roda de novo — crie manualmente:
 
-  ```bash
-  docker compose exec db psql -U postgres -c 'CREATE DATABASE nando_lz_testing;'
-  ```
+    ```bash
+    docker compose exec db psql -U postgres -c 'CREATE DATABASE nando_lz_testing;'
+    ```
 
 - **CI:** o serviço PostgreSQL 16 já provê esse banco.
 
 > [!CAUTION]
 > `docker compose down -v` apaga o volume `pgdata` inteiro — **os bancos de dev e de teste somem juntos**. Na próxima subida, o `pg-init.sql` recria o de teste, mas os dados de dev se perdem. Prefira `docker compose down` sem `-v`.
 
-## Renovate não abre PRs
+## Dependabot não abre PRs
 
-O Renovate **requer que o app seja habilitado no repositório, no GitHub**. Sem essa habilitação, o `renovate.json` não tem efeito e nenhum PR é aberto. Habilite o app Renovate na organização/repositório. Lembre também que a agenda é **sábado de manhã** (`America/Sao_Paulo`) — fora dela o Renovate não roda. Ver [AUTO_UPDATE_POLICY.md](AUTO_UPDATE_POLICY.md).
+Confirme a existência de `.github/dependabot.yml` na `main` e se a configuração do GitHub não desativou Dependabot security/updates para o repositório. A agenda configurada para GitHub Actions é semanal aos sábados; fora dela, use `Dependabot Updates` no GitHub Actions ou aguarde o próximo ciclo. Ver [AUTO_UPDATE_POLICY.md](AUTO_UPDATE_POLICY.md).

@@ -43,7 +43,7 @@ Detalhes das classes de mudança, camadas de automação e critérios de merge a
 - **Banco de teste no Docker.** `docker/pg-init.sql` cria `nando_lz_testing` na primeira inicialização do volume `pgdata`; `docker compose exec app php artisan test` é seguro e isolado.
 - **Container não-root.** O app roda como usuário `app` com UID configurável (`build.args.UID`, padrão 1000) — não reintroduzir root no container nem quebrar a editabilidade do bind-mount no host.
 - **PR do ciclo.** O `auto-update.yml` não abre PR se só o relatório mudou; usa `--force-with-lease` (re-run seguro no mesmo dia); cria-ou-atualiza o PR; valida o escopo com `assert-autonomous-update.sh` e dispara `gh workflow run ci.yml --ref <branch>` após abrir (pushes com `GITHUB_TOKEN` não disparam workflows — sem isso o PR fica preso em "Expected").
-- **Renovate no sábado**, agente na segunda — não realinhar as agendas para o mesmo dia.
+- **Dependabot no sábado**, ciclo automático na segunda — não realinhar as agendas para o mesmo dia.
 - **`superadmin:create`** atribui `email_verified_at` explicitamente; o campo fica fora do `$fillable` por design.
 
 ## Scripts (ponteiros)
@@ -59,4 +59,4 @@ Detalhes de cada script: `INSTALLATION.md`, `LOCAL.md`, `DOCKER.md`.
 
 ## Mantenedor × usuário
 
-A automação de manutenção (`auto-update.yml`, `compat-watch.yml`, `renovate.json`, `resolve-stack.sh`, `update-stack.sh`) é do **mantenedor** do `nando-lz` — serve para manter o *starter* evergreen. Quem clona para um projeto novo roda `php artisan app:setup` (wizard de rebrand), que renomeia a identidade e **desanexa** essa automação, preservando o CI. Ver [MAINTAINER.md](MAINTAINER.md).
+A automação de manutenção (`auto-update.yml`, `autonomous-merge.yml`, `compat-watch.yml`, `.github/dependabot.yml`, `resolve-stack.sh`, `update-stack.sh`) é do **mantenedor** do `nando-lz` — serve para manter o _starter_ evergreen. Quem clona para um projeto novo roda `php artisan app:setup` (wizard de rebrand), que renomeia a identidade e **desanexa** essa automação, preservando o CI. Ver [MAINTAINER.md](MAINTAINER.md).

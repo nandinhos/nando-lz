@@ -1,6 +1,6 @@
 # Política de Auto-Atualização
 
-Como o nando-lz se mantém *evergreen* sem intervenção manual constante — com autonomia limitada por evidências independentes e falha segura.
+Como o nando-lz se mantém _evergreen_ sem intervenção manual constante — com autonomia limitada por evidências independentes e falha segura.
 
 ## Automação em 3 camadas (§6)
 
@@ -33,11 +33,11 @@ flowchart TD
     Q3 -->|não| NOP[Nada a fazer neste ciclo]
 ```
 
-| Classe | O que é | Ação | Merge |
-|--------|---------|------|-------|
-| **AUTO** | patch/minor dentro das constraints, lock file, README gerado e relatório do ciclo; ou troca literal de referência de GitHub Action | aplicar na branch, validar, abrir PR candidata | **autônomo** somente se origem confiável, escopo permitido e todos os checks estiverem verdes |
-| **REVIEW** | major de Laravel/Filament/PHP/Livewire; troca/remoção de pacote; mudança estrutural de auth/painéis; base image Docker com breaking change; migração manual | branch + relatório + PR `needs-human-approval` | **exclusivamente humano** |
-| **BLOCKED** | incompatibilidade upstream (§4.2) | **sem PR** — issue rastreadora + monitoramento semanal | — |
+| Classe      | O que é                                                                                                                                                     | Ação                                                   | Merge                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| **AUTO**    | patch/minor dentro das constraints, lock file, README gerado e relatório do ciclo; ou troca literal de referência de GitHub Action                          | aplicar na branch, validar, abrir PR candidata         | **autônomo** somente se origem confiável, escopo permitido e todos os checks estiverem verdes |
+| **REVIEW**  | major de Laravel/Filament/PHP/Livewire; troca/remoção de pacote; mudança estrutural de auth/painéis; base image Docker com breaking change; migração manual | branch + relatório + PR `needs-human-approval`         | **exclusivamente humano**                                                                     |
+| **BLOCKED** | incompatibilidade upstream (§4.2)                                                                                                                           | **sem PR** — issue rastreadora + monitoramento semanal | —                                                                                             |
 
 ## Gates obrigatórios (§7.3) — ordem fixa
 
@@ -59,16 +59,16 @@ flowchart TD
 
 Workflows em `.github/workflows/`:
 
-- **`ci.yml`** — gate universal. Dispara em push (`main` e `maintenance/**`), `pull_request` e manual. Matriz **PHP 8.3 e 8.4 × PostgreSQL 16** (banco `nando_lz_testing`). Usa `actions/checkout@v7`, `actions/setup-node@v6` e `actions/cache@v6` (cache do Composer por hash do `composer.lock` + versão do PHP da matriz) — sem warnings de runtime Node 20. Passos: `composer validate --strict`, install, `key:generate`, `vendor/bin/pint --test`, `migrate --force`, `npm ci` + `npm run build`, `./vendor/bin/pest`.
+- **`ci.yml`** — gate universal. Dispara em push (`main` e `maintenance/**`), `pull_request` e manual. Matriz **PHP 8.3 e 8.4 × PostgreSQL 16** (banco `nando_lz_testing`). Usa `actions/checkout@v7`, `actions/setup-node@v7` e `actions/cache@v6` (cache do Composer por hash do `composer.lock` + versão do PHP da matriz). Passos: `composer validate --strict`, install, `key:generate`, `vendor/bin/pint --test`, `migrate --force`, `npm ci` + `npm run build`, `./vendor/bin/pest`.
 
 - **`auto-update.yml`** — ciclo semanal do agente. Cron `0 11 * * 1` (UTC) = **segunda 08:00 America/Sao_Paulo**; também `workflow_dispatch`. Cria branch `maintenance/auto-update-YYYY-MM-DD`, roda `scripts/update-stack.sh` e abre uma PR candidata. Comportamentos importantes:
-  - **Não abre PR se só o relatório mudou** — o relatório sozinho não justifica ciclo de review.
-  - Push com `git push --force-with-lease`: um **re-run no mesmo dia** sobrescreve a própria branch com segurança.
-  - **Cria o PR ou atualiza o corpo** se ele já existir (re-run do dia).
-  - **Bootstrap idempotente de labels** (`auto-update`, `dependencies`, `autonomous-candidate`, `needs-human-approval`, `autonomy-blocked` e `security`) — funciona em forks/clones novos.
-  - Após abrir o PR, dispara `gh workflow run ci.yml --ref <branch>`: pushes feitos com `GITHUB_TOKEN` **não disparam workflows** (regra do GitHub Actions) e, sem esse dispatch, o PR ficaria preso em "Expected" nos required checks. Por isso o workflow tem permissão `actions: write`.
-  - Labels: `autonomous-candidate` somente com diff aprovado e ciclo verde; `needs-human-approval` e `autonomy-blocked` para qualquer desvio. Falha do ciclo gera issue `maintenance-failure`.
-  - `autonomous-merge.yml` roda após CI verde, em duas varreduras horárias e manualmente. Ele aceita apenas `github-actions[bot]` em branches `maintenance/auto-update-YYYY-MM-DD`, ou `dependabot[bot]` em branches `dependabot/`; revalida o escopo pela API e nunca executa o conteúdo da PR privilegiadamente. Se a branch ficar atrás da `main`, rebaseia e dispara novamente o CI antes de considerar o merge.
+    - **Não abre PR se só o relatório mudou** — o relatório sozinho não justifica ciclo de review.
+    - Push com `git push --force-with-lease`: um **re-run no mesmo dia** sobrescreve a própria branch com segurança.
+    - **Cria o PR ou atualiza o corpo** se ele já existir (re-run do dia).
+    - **Bootstrap idempotente de labels** (`auto-update`, `dependencies`, `autonomous-candidate`, `needs-human-approval`, `autonomy-blocked` e `security`) — funciona em forks/clones novos.
+    - Após abrir o PR, dispara `gh workflow run ci.yml --ref <branch>`: pushes feitos com `GITHUB_TOKEN` **não disparam workflows** (regra do GitHub Actions) e, sem esse dispatch, o PR ficaria preso em "Expected" nos required checks. Por isso o workflow tem permissão `actions: write`.
+    - Labels: `autonomous-candidate` somente com diff aprovado e ciclo verde; `needs-human-approval` e `autonomy-blocked` para qualquer desvio. Falha do ciclo gera issue `maintenance-failure`.
+    - `autonomous-merge.yml` roda após CI verde, em duas varreduras horárias e manualmente. Ele aceita as identidades oficiais `github-actions[bot]` e `app/github-actions` em branches `maintenance/auto-update-YYYY-MM-DD`, ou `dependabot[bot]` e `app/dependabot` em branches `dependabot/`; revalida o escopo pela API e nunca executa o conteúdo da PR privilegiadamente. Se a branch ficar atrás da `main`, rebaseia, aguarda a publicação do novo SHA e dispara novamente o CI antes de considerar o merge. Para cada gate, só aceita o resultado mais recente concluído com sucesso.
 
 - **`compat-watch.yml`** — vigia a janela de incompatibilidade (§4.2). Semanal. Roda `resolve-stack.sh`; se `blocked_upstream` for verdadeiro, cria/atualiza a issue rastreadora `compat: aguardando Filament x Laravel N` — onde **N é a major aguardada correta**: a última estável do Laravel que o Filament ainda não suporta. Faz bootstrap idempotente do label `blocked-upstream`; quando o upstream liberar, fecha a issue.
 
