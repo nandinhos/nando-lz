@@ -161,7 +161,7 @@ jobs:
             while IFS= read -r pr; do prs+=("$pr"); done < <(gh pr list --repo "$REPOSITORY" --base main --state open --json number --jq '.[].number')
           fi
 
-          for pr in "${prs[@]:-}"; do
+          for pr in "${prs[@]}"; do
             metadata="$(gh pr view "$pr" --repo "$REPOSITORY" --json isDraft,baseRefName,headRefName,headRefOid,author,mergeStateStatus)"
             draft="$(jq -r .isDraft <<< "$metadata")"
             base="$(jq -r .baseRefName <<< "$metadata")"
