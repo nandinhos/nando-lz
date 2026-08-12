@@ -223,6 +223,7 @@ jobs:
             fi
 
             [ "$merge_state" = CLEAN ] || continue
+            gh api --method POST "repos/$REPOSITORY/issues/$pr/labels" -f 'labels[]=autonomous-candidate' >/dev/null
             gh api --method PUT "repos/$REPOSITORY/pulls/$pr/merge" \
               -f sha="$head_sha" \
               -f merge_method=rebase >/dev/null

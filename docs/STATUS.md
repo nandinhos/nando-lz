@@ -17,6 +17,7 @@ A `main` está publicada em produção: CI, deploy via SSH restrito e health che
 
 - O deploy de `main` é disparado somente após a conclusão bem-sucedida de `CI`, pelo workflow [deploy-production.yml](../.github/workflows/deploy-production.yml).
 - A VPS publica releases atômicas em `/var/www/nandolz.fssdev.com.br/releases`, mantém `.env` e `storage` em `shared/`, exige `200` em `/up` e restaura o código anterior se o health check falhar.
+- O workflow `publish-release.yml` cria uma GitHub Release `PATCH` para cada atualização autônoma que tenha concluído esse deploy; tags manuais também exigem o SHA já publicado.
 - O contrato, a recuperação e os secrets necessários estão em [DEPLOYMENT.md](DEPLOYMENT.md); a decisão está registrada no [ADR 0001](adr/0001-deploy-atomico-via-github-actions.md).
 
 O contrato de autonomia está em [AUTO_UPDATE_POLICY.md](AUTO_UPDATE_POLICY.md) e a decisão de segurança em [ADR 0002](adr/0002-merge-autonomo-dependencias.md).

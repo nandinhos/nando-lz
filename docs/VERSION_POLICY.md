@@ -22,13 +22,15 @@ O nando-lz tem **versionamento semântico próprio** (ex.: `v1.0.0`), **independ
 
 ## Releases e tags
 
-- Releases SemVer são **taggeadas manualmente** (`gh release create vX.Y.Z`) pelo mantenedor ou pelo agente, ao fechar um **conjunto relevante de mudanças** — não há mecanismo automático de tag por merge.
-- **Todo release aponta para um commit da `main` com CI verde** (a branch protection garante que nada entra na `main` sem verde).
+- Uma atualização da classe **AUTO** recebe release **PATCH automática** depois que seu merge, CI e deploy em produção forem bem-sucedidos. O workflow calcula a próxima tag a partir da última release estável e publica notas geradas pelo GitHub, com vínculo ao deploy comprovado.
+- A automação só considera PRs marcadas como `autonomous-candidate`; merges humanos, documentação e mudanças estruturais não geram tag acidentalmente.
+- Releases excepcionais de `PATCH`, `MINOR` ou `MAJOR` usam o gatilho manual `Publish release`, com tag explícita e o SHA já implantado. O workflow recusa tag inválida, duplicada, SHA fora da `main` ou SHA sem deploy bem-sucedido.
+- **Todo release aponta para um commit da `main` com CI e deploy verdes**; o health check HTTPS faz parte do deploy.
 - Usuários clonam sempre um **estado conhecido-bom** (a tag mais recente ou a `main` verde).
 - O identificador de build no rodapé da sidebar **confirma visualmente** qual versão está implantada (ver §5.6 em [STACK.md](STACK.md)).
 
 > [!NOTE]
-> Merges de manutenção (patch/minor de lock) podem se acumular entre releases — a tag marca um estado revisado e nomeado, não cada merge individual.
+> O `CHANGELOG.md` continua sendo o histórico editorial dos marcos do starter. As GitHub Releases são o registro cronológico e imutável de cada atualização autônoma publicada.
 
 ## Rollback (§11)
 
