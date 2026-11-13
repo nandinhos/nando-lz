@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ["8.3", "8.4"]
+        php: ["8.3", "8.4", "8.5"]
 
     services:
       postgres:
@@ -77,7 +77,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl, pdo_pgsql
+          extensions: intl, pdo_pgsql, zip
           coverage: none
 
       - uses: actions/setup-node@v7
@@ -123,3 +123,211 @@ jobs:
 
       - name: Pest (painéis, logout, superadmin, migrations)
         run: ./vendor/bin/pest
+
+  production-smoke:
+    name: Production install (--no-dev + PHP-FPM)
+    runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: nando_lz_testing
+      DB_USERNAME: postgres
+      DB_PASSWORD: ""
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: nando_lz_testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: intl, pdo_pgsql, zip, mbstring, xml, curl, bcmath
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: composer check-platform-reqs --no-dev
+        run: composer check-platform-reqs --no-dev
+
+      - name: composer install --no-dev
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Garantir ausência do Pest em produção
+        run: test ! -e vendor/bin/pest
+
+      - name: Build de assets (produção)
+        run: |
+          npm ci
+          npm run build
+
+      - name: Preparar .env e otimizar caches
+        run: |
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan optimize
+          chmod -R a+rwX storage bootstrap/cache
+
+      - name: Subir PHP-FPM 8.5 + Nginx
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends nginx php8.5-fpm
+          sudo sed -i 's/^user www-data;/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i 's/^user = www-data/user = runner/; s/^group = www-data/group = runner/; s/^listen.owner = www-data/listen.owner = runner/; s/^listen.group = www-data/listen.group = runner/' /etc/php/8.5/fpm/pool.d/www.conf
+          sudo systemctl restart php8.5-fpm
+          FPM_SOCK="$(ls /run/php/php8.5-fpm.sock)"
+          sudo tee /etc/nginx/sites-available/nando-lz.conf >/dev/null <<EOF
+          server {
+              listen 127.0.0.1:8000 default_server;
+              root ${GITHUB_WORKSPACE}/public;
+              index index.php;
+              location / {
+                  try_files \$uri \$uri/ /index.php?\$query_string;
+              }
+              location ~ \.php\$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:${FPM_SOCK};
+              }
+          }
+          EOF
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo ln -sf /etc/nginx/sites-available/nando-lz.conf /etc/nginx/sites-enabled/nando-lz.conf
+          sudo nginx -t
+          sudo systemctl restart nginx
+
+      - name: Verificar respostas HTTP reais e versões do ambiente
+        run: |
+          php -v
+          nginx -v
+          node -v
+          composer --version
+          for route in "/" "/admin/login" "/ops/login" "/support/login"; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000${route}")
+            echo "GET ${route} -> HTTP ${code}"
+            test "$code" -eq 200
+          done
+
+  browser-smoke:
+    name: Browser smoke (Playwright)
+    runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: nando_lz_testing
+      DB_USERNAME: postgres
+      DB_PASSWORD: ""
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: nando_lz_testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: intl, pdo_pgsql, zip, mbstring, xml, curl, bcmath
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Instalar dependências de produção e compilar assets
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          npm ci
+          npm run build
+
+      - name: Preparar aplicação, migrations e usuário de smoke
+        run: |
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          sed -i 's|^APP_URL=.*|APP_URL=http://127.0.0.1:8000|' .env
+          php artisan key:generate
+          php artisan migrate --force
+          php artisan tinker --execute="\App\Models\User::query()->updateOrCreate(['email' => 'smoke@nando-lz.test'], ['name' => 'Smoke User', 'password' => \Illuminate\Support\Facades\Hash::make('Smoke-Test-123!')]);"
+          php artisan optimize
+          chmod -R a+rwX storage bootstrap/cache
+
+      - name: Subir PHP-FPM 8.5 + Nginx
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends nginx php8.5-fpm
+          sudo sed -i 's/^user www-data;/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i 's/^user = www-data/user = runner/; s/^group = www-data/group = runner/; s/^listen.owner = www-data/listen.owner = runner/; s/^listen.group = www-data/listen.group = runner/' /etc/php/8.5/fpm/pool.d/www.conf
+          sudo systemctl restart php8.5-fpm
+          FPM_SOCK="$(ls /run/php/php8.5-fpm.sock)"
+          sudo tee /etc/nginx/sites-available/nando-lz.conf >/dev/null <<EOF
+          server {
+              listen 127.0.0.1:8000 default_server;
+              root ${GITHUB_WORKSPACE}/public;
+              index index.php;
+              location / {
+                  try_files \$uri \$uri/ /index.php?\$query_string;
+              }
+              location ~ \.php\$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:${FPM_SOCK};
+              }
+          }
+          EOF
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo ln -sf /etc/nginx/sites-available/nando-lz.conf /etc/nginx/sites-enabled/nando-lz.conf
+          sudo nginx -t
+          sudo systemctl restart nginx
+
+      - name: Instalar Playwright (sem alterar package-lock.json)
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium --with-deps
+
+      - name: Executar smoke Playwright (admin, ops, support)
+        env:
+          APP_URL: http://127.0.0.1:8000
+          SMOKE_EMAIL: smoke@nando-lz.test
+          SMOKE_PASSWORD: Smoke-Test-123!
+          PLAYWRIGHT_ARTIFACT_DIR: playwright-artifacts
+        run: node scripts/playwright-smoke.mjs
+
+      - name: Publicar evidências do navegador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-artifacts
+          path: playwright-artifacts/
+          if-no-files-found: warn
