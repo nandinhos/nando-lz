@@ -145,8 +145,18 @@ COMPOSER_ALLOW_SUPERUSER=1 "$PHP_BINARY" /usr/local/bin/composer install \
     --no-progress \
     --optimize-autoloader
 
-npm --prefix "$release_dir" ci --no-audit --no-fund
-npm --prefix "$release_dir" run build
+assets_tar="$SHARED_DIR/assets/${DEPLOY_SHA}.tar.gz"
+if [ -s "$assets_tar" ]; then
+    printf 'Usando assets pré-compilados do CI: %s\n' "$assets_tar"
+    tar -xzf "$assets_tar" -C "$release_dir"
+    [ -f "$release_dir/public/build/manifest.json" ] || {
+        printf 'Manifesto de build ausente após extração de %s.\n' "$assets_tar" >&2
+        exit 68
+    }
+else
+    npm --prefix "$release_dir" ci --no-audit --no-fund
+    npm --prefix "$release_dir" run build
+fi
 
 "$PHP_BINARY" "$previous_release/artisan" down --render=errors::503 --retry=60
 maintenance_enabled=true
