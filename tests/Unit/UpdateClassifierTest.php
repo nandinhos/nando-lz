@@ -79,3 +79,17 @@ it('classifica como REVIEW quando composer.json é alterado ou há falha de gate
             'Manifesto alterado (`composer.json`).'
         );
 });
+
+it('classifica como REVIEW quando há atualização major em pacote principal mesmo sem alterar manifesto', function () {
+    $analysis = UpdateClassifier::analyze(
+        ['laravel/framework' => 'v13.40.0'],
+        ['laravel/framework' => 'v14.0.0'],
+        ['composer.lock', 'README.md', 'docs/reports/auto-update/2026-11-16.md']
+    );
+
+    expect($analysis['classification'])->toBe('REVIEW')
+        ->and($analysis['primary_updates'])->toContain('`laravel/framework`: `v13.40.0` → `v14.0.0` (major)')
+        ->and($analysis['review_reasons'])->toContain(
+            'Atualização major em 1 pacote(s) principal(is): `laravel/framework`: `v13.40.0` → `v14.0.0`.'
+        );
+});
