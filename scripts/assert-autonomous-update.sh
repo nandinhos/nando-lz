@@ -59,9 +59,19 @@ fi
 if [ -z "$changed_report" ]; then
     printf 'A atualização autônoma precisa registrar um relatório datado.\n' >&2
     invalid=true
-elif ! git show "$candidate_sha:$changed_report" | grep --fixed-strings --quiet -- '- Resultado geral: ✅ verde'; then
-    printf 'O relatório não comprova resultado geral verde: %s\n' "$changed_report" >&2
-    invalid=true
+else
+    report_content="$(git show "$candidate_sha:$changed_report")"
+    if ! grep --fixed-strings --quiet -- '- Resultado geral: ✅ verde' <<< "$report_content"; then
+        printf 'O relatório não comprova resultado geral verde: %s\n' "$changed_report" >&2
+        invalid=true
+    fi
+    if grep --fixed-strings --quiet -- '- Classificação efetiva: **REVIEW**' <<< "$report_content"; then
+        printf 'O relatório classifica a atualização como REVIEW (exige aprovação humana): %s\n' "$changed_report" >&2
+        invalid=true
+    elif grep --fixed-strings --quiet -- '- Classificação efetiva:' <<< "$report_content" && ! grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content"; then
+        printf 'O relatório não comprova classificação efetiva AUTO: %s\n' "$changed_report" >&2
+        invalid=true
+    fi
 fi
 
 if [ "$invalid" = true ]; then

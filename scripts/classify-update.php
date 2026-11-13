@@ -42,6 +42,7 @@ final class UpdateClassifier
         bool $gatesFailed = false
     ): array {
         $primaryUpdates = [];
+        $primaryMajors = [];
         $transitiveMajors = [];
 
         foreach ($newVersions as $name => $newVersion) {
@@ -56,6 +57,9 @@ final class UpdateClassifier
             $bumpType = self::bumpType($oldVersion, $newVersion);
             if (in_array($name, self::PRIMARY_PACKAGES, true)) {
                 $primaryUpdates[] = sprintf('`%s`: `%s` → `%s` (%s)', $name, $oldVersion, $newVersion, $bumpType);
+                if ($bumpType === 'major') {
+                    $primaryMajors[] = sprintf('`%s`: `%s` → `%s`', $name, $oldVersion, $newVersion);
+                }
             } elseif ($bumpType === 'major') {
                 $transitiveMajors[] = sprintf('`%s`: `%s` → `%s`', $name, $oldVersion, $newVersion);
             }
@@ -86,6 +90,14 @@ final class UpdateClassifier
                 count($outOfScope),
                 implode('`, `', $sample),
                 $extra
+            );
+        }
+
+        if ($primaryMajors !== []) {
+            $reviewReasons[] = sprintf(
+                'Atualização major em %d pacote(s) principal(is): %s.',
+                count($primaryMajors),
+                implode(', ', $primaryMajors)
             );
         }
 

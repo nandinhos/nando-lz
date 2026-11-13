@@ -78,10 +78,15 @@ jobs:
             done <<< "$files"
 
             [ "$has_lock" = true ] && [ -n "$report_path" ] || return 1
-            gh api "repos/$REPOSITORY/contents/$report_path?ref=$head_sha" --jq .content \
-              | tr -d '\n' \
-              | base64 --decode \
-              | grep --fixed-strings --quiet -- '- Resultado geral: ✅ verde'
+            local report_content
+            report_content="$(gh api "repos/$REPOSITORY/contents/$report_path?ref=$head_sha" --jq .content | tr -d '\n' | base64 --decode)"
+            grep --fixed-strings --quiet -- '- Resultado geral: ✅ verde' <<< "$report_content" || return 1
+            if grep --fixed-strings --quiet -- '- Classificação efetiva: **REVIEW**' <<< "$report_content"; then
+              return 1
+            fi
+            if grep --fixed-strings --quiet -- '- Classificação efetiva:' <<< "$report_content"; then
+              grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content" || return 1
+            fi
           }
 
           allowed_actions_candidate() {
@@ -127,7 +132,10 @@ jobs:
                 [
                   latest_required("PHP 8.3"),
                   latest_required("PHP 8.4"),
+                  latest_required("PHP 8.5"),
                   latest_required("Dependency audit"),
+                  latest_required("Production install (--no-dev + PHP-FPM)"),
+                  latest_required("Browser smoke (Playwright)"),
                   latest_required("GitGuardian Security Checks")
                 ] | all(.[]; . != null and .status == "completed" and .conclusion == "success")
               ' <<< "$checks" >/dev/null; then
@@ -173,15 +181,20 @@ jobs:
           fi
 
           for pr in "${prs[@]}"; do
-            metadata="$(gh pr view "$pr" --repo "$REPOSITORY" --json isDraft,baseRefName,headRefName,headRefOid,author,mergeStateStatus)"
+            metadata="$(gh pr view "$pr" --repo "$REPOSITORY" --json isDraft,baseRefName,headRefName,headRefOid,author,mergeStateStatus,labels)"
             draft="$(jq -r .isDraft <<< "$metadata")"
             base="$(jq -r .baseRefName <<< "$metadata")"
             branch="$(jq -r .headRefName <<< "$metadata")"
             author="$(jq -r .author.login <<< "$metadata")"
             merge_state="$(jq -r .mergeStateStatus <<< "$metadata")"
             head_sha="$(jq -r .headRefOid <<< "$metadata")"
+            needs_human="$(jq -r '[.labels[].name] | index("needs-human-approval") != null' <<< "$metadata")"
 
             [ "$draft" = false ] && [ "$base" = main ] || continue
+            if [ "$needs_human" = true ]; then
+              mark_blocked "$pr" 'classificada como REVIEW (needs-human-approval)'
+              continue
+            fi
             candidate_type=''
             if { [ "$author" = 'github-actions[bot]' ] || [ "$author" = 'app/github-actions' ]; } && [[ "$branch" =~ ^maintenance/auto-update-[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
               allowed_lock_candidate "$pr" && candidate_type='locks'
