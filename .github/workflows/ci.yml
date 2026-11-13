@@ -192,7 +192,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends nginx php8.5-fpm
-          sudo systemctl start php8.5-fpm
+          sudo sed -i 's/^user www-data;/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i 's/^user = www-data/user = runner/; s/^group = www-data/group = runner/; s/^listen.owner = www-data/listen.owner = runner/; s/^listen.group = www-data/listen.group = runner/' /etc/php/8.5/fpm/pool.d/www.conf
+          sudo systemctl restart php8.5-fpm
           FPM_SOCK="$(ls /run/php/php8.5-fpm.sock)"
           sudo tee /etc/nginx/sites-available/nando-lz.conf >/dev/null <<EOF
           server {
@@ -286,7 +288,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends nginx php8.5-fpm
-          sudo systemctl start php8.5-fpm
+          sudo sed -i 's/^user www-data;/user runner;/' /etc/nginx/nginx.conf
+          sudo sed -i 's/^user = www-data/user = runner/; s/^group = www-data/group = runner/; s/^listen.owner = www-data/listen.owner = runner/; s/^listen.group = www-data/listen.group = runner/' /etc/php/8.5/fpm/pool.d/www.conf
+          sudo systemctl restart php8.5-fpm
           FPM_SOCK="$(ls /run/php/php8.5-fpm.sock)"
           sudo tee /etc/nginx/sites-available/nando-lz.conf >/dev/null <<EOF
           server {
