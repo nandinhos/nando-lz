@@ -74,13 +74,13 @@ async function runPanelSmoke(browser, panel) {
     if (page.url().includes(`/${panel}/login`)) {
       throw new Error(`Redirecionado para login ao acessar /${panel}/profile`);
     }
-    await page.waitForSelector('form', { timeout: 10000 });
+    await page.locator('main form, .fi-main form').first().waitFor({ state: 'visible', timeout: 10000 });
 
     console.log(`[smoke:${panel}] 4/4 Logout`);
-    const userMenuButton = page.locator('.fi-user-menu button, [aria-label*="User"], [aria-label*="usuário"]').first();
+    const userMenuButton = page.locator('.fi-user-menu-trigger, .fi-user-menu button, [aria-label*="User"], [aria-label*="usuário"]').first();
     await userMenuButton.click();
 
-    const logoutButton = page.locator('form[action*="logout"] button, button:has-text("Sair"), button:has-text("Sign out"), button:has-text("Log out")').first();
+    const logoutButton = page.locator('form[action*="logout"] button').first();
     await Promise.all([
       page.waitForURL((url) => url.pathname.includes(`/${panel}/login`), { timeout: 15000 }),
       logoutButton.click(),
