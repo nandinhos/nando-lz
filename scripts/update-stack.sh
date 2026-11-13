@@ -79,7 +79,11 @@ fi
 AFTER="$(./scripts/resolve-stack.sh 2>/dev/null || echo '{}')"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'sem-git')"
 CHANGED_FILES="$(git status --porcelain 2>/dev/null | sed 's/^...//' | awk -F ' -> ' '{print $NF}' || true)"
-CLASSIFICATION_MD="$(printf '%s\n' "$CHANGED_FILES" | php scripts/classify-update.php "$BEFORE_LOCK" composer.lock "$FAILED" - 2>/dev/null || true)"
+if ! CLASSIFICATION_MD="$(printf '%s\n' "$CHANGED_FILES" | php scripts/classify-update.php "$BEFORE_LOCK" composer.lock "$FAILED" -)"; then
+  CLASSIFICATION_MD=""
+  FAILED=1
+  STEPS+="- ❌ classificar atualização (classify-update.php)\n"
+fi
 
 # §7.3(11) relatório do ciclo (§9).
 {
@@ -100,7 +104,10 @@ CLASSIFICATION_MD="$(printf '%s\n' "$CHANGED_FILES" | php scripts/classify-updat
     echo "$CLASSIFICATION_MD"
   else
     echo "## Classificação (§7.2)"
-    echo "- Classificação não calculada."
+    echo
+    echo "- Classificação efetiva: **REVIEW**"
+    echo "- Motivo(s) da classificação **REVIEW**:"
+    echo "  - Falha ao calcular classificação automática via \`scripts/classify-update.php\`."
   fi
   echo
   echo "> Gerado por scripts/update-stack.sh. Este script não faz merge nem push."

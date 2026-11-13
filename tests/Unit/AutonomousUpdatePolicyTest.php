@@ -48,20 +48,35 @@ function assertAutonomousUpdate(array $fixture): Process
     return $process;
 }
 
-it('aceita apenas lock files, README e relatório verde', function () {
+it('aceita apenas lock files, README e relatório verde com classificação AUTO', function () {
     $result = assertAutonomousUpdate([
         'composer.lock' => '{"content-hash":"base","packages":[{"name":"safe/package"}]}',
-        'docs/reports/auto-update/2026-08-11.md' => "# Relatório\n\n- Resultado geral: ✅ verde\n",
+        'docs/reports/auto-update/2026-08-11.md' => "# Relatório\n\n- Resultado geral: ✅ verde\n\n## Classificação (§7.2)\n\n- Classificação efetiva: **AUTO**\n",
     ]);
 
     expect($result->getExitCode())->toBe(0)
         ->and($result->getOutput())->toContain('Candidato autônomo validado');
 });
 
+it('rejeita relatório verde sem classificação AUTO explícita', function (string $classificationLine) {
+    $result = assertAutonomousUpdate([
+        'composer.lock' => '{"content-hash":"base","packages":[{"name":"safe/package"}]}',
+        'docs/reports/auto-update/2026-08-11.md' => "# Relatório\n\n- Resultado geral: ✅ verde\n\n{$classificationLine}\n",
+    ]);
+
+    expect($result->getExitCode())->toBe(1)
+        ->and($result->getErrorOutput())->toContain('não comprova classificação efetiva AUTO');
+})->with([
+    'REVIEW' => ['- Classificação efetiva: **REVIEW**'],
+    'ausente' => [''],
+    'nao calculada' => ['- Classificação não calculada.'],
+    'desconhecida' => ['- Classificação efetiva: **UNKNOWN**'],
+]);
+
 it('rejeita manifest ou código junto de atualização de dependência', function (string $path) {
     $result = assertAutonomousUpdate([
         'composer.lock' => '{"content-hash":"base","packages":[{"name":"safe/package"}]}',
-        'docs/reports/auto-update/2026-08-11.md' => "# Relatório\n\n- Resultado geral: ✅ verde\n",
+        'docs/reports/auto-update/2026-08-11.md' => "# Relatório\n\n- Resultado geral: ✅ verde\n\n- Classificação efetiva: **AUTO**\n",
         $path => 'fora do escopo',
     ]);
 

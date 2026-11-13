@@ -65,10 +65,7 @@ else
         printf 'O relatório não comprova resultado geral verde: %s\n' "$changed_report" >&2
         invalid=true
     fi
-    if grep --fixed-strings --quiet -- '- Classificação efetiva: **REVIEW**' <<< "$report_content"; then
-        printf 'O relatório classifica a atualização como REVIEW (exige aprovação humana): %s\n' "$changed_report" >&2
-        invalid=true
-    elif grep --fixed-strings --quiet -- '- Classificação efetiva:' <<< "$report_content" && ! grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content"; then
+    if ! grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content"; then
         printf 'O relatório não comprova classificação efetiva AUTO: %s\n' "$changed_report" >&2
         invalid=true
     fi

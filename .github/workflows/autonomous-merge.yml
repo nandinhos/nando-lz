@@ -81,12 +81,7 @@ jobs:
             local report_content
             report_content="$(gh api "repos/$REPOSITORY/contents/$report_path?ref=$head_sha" --jq .content | tr -d '\n' | base64 --decode)"
             grep --fixed-strings --quiet -- '- Resultado geral: ✅ verde' <<< "$report_content" || return 1
-            if grep --fixed-strings --quiet -- '- Classificação efetiva: **REVIEW**' <<< "$report_content"; then
-              return 1
-            fi
-            if grep --fixed-strings --quiet -- '- Classificação efetiva:' <<< "$report_content"; then
-              grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content" || return 1
-            fi
+            grep --fixed-strings --quiet -- '- Classificação efetiva: **AUTO**' <<< "$report_content" || return 1
           }
 
           allowed_actions_candidate() {
