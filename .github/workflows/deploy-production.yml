@@ -33,6 +33,25 @@ jobs:
       DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
 
     steps:
+      - name: Checkout do SHA validado
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Compilar assets no CI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          tar -czf /tmp/assets.tar.gz public/build
+
       - name: Configurar SSH restrito
         shell: bash
         run: |
@@ -41,6 +60,20 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
           printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Enviar assets compilados para a VPS
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          ssh \
+            -i "$HOME/.ssh/id_ed25519" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -p "$DEPLOY_SSH_PORT" \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
+            "upload-assets $DEPLOY_SHA" < /tmp/assets.tar.gz
 
       - name: Publicar release validada
         shell: bash
