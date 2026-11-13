@@ -52,9 +52,12 @@ async function runPanelSmoke(browser, panel) {
     await passwordInput.fill(password);
 
     await Promise.all([
-      page.waitForURL((url) => url.pathname === `/${panel}` || url.pathname.startsWith(`/${panel}/`), {
-        timeout: 15000,
-      }),
+      page.waitForURL(
+        (url) =>
+          (url.pathname === `/${panel}` || url.pathname.startsWith(`/${panel}/`)) &&
+          !url.pathname.startsWith(`/${panel}/login`),
+        { timeout: 15000 }
+      ),
       page.locator('button[type="submit"]').first().click(),
     ]);
     await page.waitForLoadState('networkidle');
