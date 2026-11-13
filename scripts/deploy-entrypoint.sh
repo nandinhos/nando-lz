@@ -7,7 +7,64 @@ set -Eeuo pipefail
 
 readonly REPOSITORY='https://github.com/nandinhos/nando-lz.git'
 readonly FALLBACK_SCRIPT='/usr/local/lib/nando-lz/deploy-production.sh'
-readonly ASSETS_DIR='/var/www/nandolz.fssdev.com.br/shared/assets'
+readonly ASSETS_DIR="${NANDOLZ_ASSETS_DIR:-/var/www/nandolz.fssdev.com.br/shared/assets}"
+
+validate_assets_tar() {
+    local tar_file="$1"
+    local has_manifest=false
+    local line entry_type entry_path
+
+    gzip -t "$tar_file" || return 1
+
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        entry_type="${line:0:1}"
+        case "$entry_type" in
+            -|d) ;;
+            *)
+                printf 'Pacote de assets contém tipo de entrada não permitido (%s).\n' "$entry_type" >&2
+                return 1
+                ;;
+        esac
+
+        # Em `tar -tvzf` para arquivos regulares (-) e diretórios (d), o caminho
+        # vem após `<user>/<group> <size> <YYYY-MM-DD> <HH:MM> <path>`.
+        entry_path="$(printf '%s\n' "$line" | sed -E 's/^[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[0-9]+[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]+[0-9]{2}:[0-9]{2}[[:space:]]+//')"
+        entry_path="${entry_path#./}"
+
+        if [ -z "$entry_path" ] || [[ "$entry_path" == /* ]] || [[ "$entry_path" =~ (^|/)\.\.(/|$) ]]; then
+            printf 'Pacote de assets contém caminho não permitido: %s\n' "$entry_path" >&2
+            return 1
+        fi
+
+        case "$entry_path" in
+            public|public/|public/build|public/build/)
+                [ "$entry_type" = 'd' ] || {
+                    printf 'Entrada pai deve ser diretório: %s\n' "$entry_path" >&2
+                    return 1
+                }
+                ;;
+            public/build/manifest.json)
+                [ "$entry_type" = '-' ] || {
+                    printf 'Manifesto deve ser arquivo regular: %s\n' "$entry_path" >&2
+                    return 1
+                }
+                has_manifest=true
+                ;;
+            public/build/*)
+                ;;
+            *)
+                printf 'Pacote de assets contém entrada fora de public/build/: %s\n' "$entry_path" >&2
+                return 1
+                ;;
+        esac
+    done < <(tar -tvzf "$tar_file")
+
+    if [ "$has_manifest" != true ]; then
+        printf 'Pacote de assets não contém public/build/manifest.json.\n' >&2
+        return 1
+    fi
+}
 
 original_command="${SSH_ORIGINAL_COMMAND:-}"
 
@@ -23,13 +80,7 @@ if [[ "$original_command" =~ ^upload-assets[[:space:]]+([0-9a-f]{40})$ ]]; then
         exit 67
     fi
 
-    gzip -t "$tmp_tar"
-    if tar -tzf "$tmp_tar" | grep -Eq '(^/|\.\.|^\./\.\.)'; then
-        printf 'Pacote de assets contém caminho não permitido.\n' >&2
-        exit 68
-    fi
-    if ! tar -tzf "$tmp_tar" | grep -Eq '^(public/build/|\./public/build/)'; then
-        printf 'Pacote de assets não contém public/build/.\n' >&2
+    if ! validate_assets_tar "$tmp_tar"; then
         exit 68
     fi
 
