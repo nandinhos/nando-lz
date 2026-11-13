@@ -9,19 +9,20 @@
 | Raiz de releases | `/var/www/nandolz.fssdev.com.br` |
 | Runtime | Nginx + PHP 8.5-FPM |
 | Gatilho | conclusão bem-sucedida do workflow `CI` na `main` |
-| Autorização | chave SSH exclusiva, forçada a `deploy <SHA>` |
+| Autorização | chave SSH exclusiva, forçada a `upload-assets <SHA>` e `deploy <SHA>` |
 
-O workflow [deploy-production.yml](../.github/workflows/deploy-production.yml) não executa em Pull Requests e não possui permissão de escrita no repositório. Ele recebe os secrets apenas do Environment `production` e solicita ao servidor a publicação do SHA exato aprovado pelo CI.
+O workflow [deploy-production.yml](../.github/workflows/deploy-production.yml) não executa em Pull Requests e não possui permissão de escrita no repositório. Ele recebe os secrets apenas do Environment `production`, compila `public/build` no runner do CI e solicita ao servidor a publicação do SHA exato aprovado pelo CI.
 
 ## Sequência de publicação
 
-1. O launcher `/usr/local/sbin/nandolz-deploy` valida o comando SSH e confirma que o SHA pertence à `main` remota.
-2. [scripts/deploy-production.sh](../scripts/deploy-production.sh) prepara uma nova release em `releases/<timestamp>_<sha>` sem alterar `current`.
-3. A release recebe os links para `shared/.env` e `shared/storage`, instala dependências de produção, gera assets e grava `build.json` com o SHA curto.
-4. A aplicação entra brevemente em manutenção; migrations e `php artisan optimize` são executados antes da troca do symlink `current`.
-5. O PHP-FPM é recarregado, a aplicação volta a aceitar tráfego e o deploy exige `200` em `/up` via HTTPS/TLS.
-6. Se qualquer etapa posterior à troca falhar, `current` volta para a release anterior e o PHP-FPM é recarregado. A release que falhou permanece para diagnóstico.
-7. O script conserva as cinco releases mais recentes. O rollback restaura código; migrations de banco devem preservar compatibilidade retroativa até a próxima publicação validada.
+1. O workflow compila os assets no CI (`npm ci && npm run build`) e envia o pacote `public/build` via `upload-assets <SHA>` para `shared/assets/<SHA>.tar.gz` (validado em tamanho até 50 MB, integridade gzip e ausência de path traversal).
+2. O launcher `/usr/local/sbin/nandolz-deploy` (versionado em [scripts/deploy-entrypoint.sh](../scripts/deploy-entrypoint.sh)) valida o comando `deploy <SHA>` e confirma que o SHA pertence à `main` remota.
+3. [scripts/deploy-production.sh](../scripts/deploy-production.sh) prepara uma nova release em `releases/<timestamp>_<sha>` sem alterar `current`.
+4. A release recebe os links para `shared/.env` e `shared/storage`, instala dependências PHP (`--no-dev`), extrai `shared/assets/<SHA>.tar.gz` (com fallback para build local caso o pacote não exista) e grava `build.json` com o SHA curto.
+5. A aplicação entra brevemente em manutenção; migrations e `php artisan optimize` são executados antes da troca do symlink `current`.
+6. O PHP-FPM é recarregado, a aplicação volta a aceitar tráfego e o deploy exige `200` em `/up` via HTTPS/TLS.
+7. Se qualquer etapa posterior à troca falhar, `current` volta para a release anterior e o PHP-FPM é recarregado. A release que falhou permanece para diagnóstico.
+8. O script conserva as cinco releases mais recentes (e os cinco pacotes de assets mais recentes). O rollback restaura código; migrations de banco devem preservar compatibilidade retroativa até a próxima publicação validada.
 
 ## Bootstrap da chave e dos secrets
 
@@ -36,6 +37,12 @@ Os valores são exclusivos do Environment `production` e nunca entram no reposit
 | `DEPLOY_SSH_KNOWN_HOSTS` | Chave pública do host para validação estrita de SSH |
 
 A chave pública recebe as restrições `command="/usr/local/sbin/nandolz-deploy"`, `no-pty`, `no-port-forwarding`, `no-agent-forwarding`, `no-X11-forwarding` e `no-user-rc`. Ela não serve como shell remoto geral.
+
+Para instalar ou atualizar o launcher ao provisionar/reconstruir a VPS:
+
+```bash
+install -m 755 scripts/deploy-entrypoint.sh /usr/local/sbin/nandolz-deploy
+```
 
 ## Operação e recuperação
 
