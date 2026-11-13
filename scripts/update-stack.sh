@@ -39,6 +39,9 @@ run() { # run "rótulo" comando…
 
 # Antes (versões travadas hoje).
 BEFORE="$(./scripts/resolve-stack.sh 2>/dev/null || echo '{}')"
+BEFORE_LOCK="$(mktemp)"
+trap 'rm -f "$BEFORE_LOCK"' EXIT
+[ -f composer.lock ] && cp composer.lock "$BEFORE_LOCK"
 
 # §7.3(2) resolução de compatibilidade.
 run "resolve-stack (§4.1)" ./scripts/resolve-stack.sh >/dev/null
@@ -75,6 +78,8 @@ fi
 
 AFTER="$(./scripts/resolve-stack.sh 2>/dev/null || echo '{}')"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'sem-git')"
+CHANGED_FILES="$(git status --porcelain 2>/dev/null | sed 's/^...//' | awk -F ' -> ' '{print $NF}' || true)"
+CLASSIFICATION_MD="$(printf '%s\n' "$CHANGED_FILES" | php scripts/classify-update.php "$BEFORE_LOCK" composer.lock "$FAILED" - 2>/dev/null || true)"
 
 # §7.3(11) relatório do ciclo (§9).
 {
@@ -91,10 +96,12 @@ COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'sem-git')"
   echo "## Stack — depois"
   echo '```json'; echo "$AFTER"; echo '```'
   echo
-  echo "## Classificação (§7.2)"
-  echo "- Mudanças de \`composer.json\` (constraint): revisar como **REVIEW** (major)."
-  echo "- Somente \`composer.lock\`/\`package-lock.json\`: **AUTO**."
-  echo "- Bloqueio upstream: ver campo \`blocked_upstream\` acima."
+  if [ -n "$CLASSIFICATION_MD" ]; then
+    echo "$CLASSIFICATION_MD"
+  else
+    echo "## Classificação (§7.2)"
+    echo "- Classificação não calculada."
+  fi
   echo
   echo "> Gerado por scripts/update-stack.sh. Este script não faz merge nem push."
 } > "$REPORT"
